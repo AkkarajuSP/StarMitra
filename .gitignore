@@ -9,10 +9,6 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Duplicate FRS at repo root — canonical copy lives in 01_Requirements/FRS/
-# (root copy remains only because the file was locked/open during setup)
-/StarMitra_FRS_v1.1_MultiTalent.docx
-
 # Common build artifacts (uncomment per stack when development begins)
 # node_modules/
 # dist/
