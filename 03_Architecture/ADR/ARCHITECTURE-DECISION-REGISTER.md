@@ -43,7 +43,7 @@ Engineering                   → Devin
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
-| OD-12 | Cloud/deployment | **Managed container platform on one major cloud; no Kubernetes for MVP; provider selection open** | PROPOSED — PENDING REVIEW |
+| OD-12 | Cloud/deployment | **Managed container platform + managed PG + object storage + CDN; no K8s for MVP; provider OPEN** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
 
 ---
@@ -1389,8 +1389,21 @@ Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-li
 | Context | All prior decisions shape this: OD-01 monolith, OD-02 Spring Boot, OD-03 PostgreSQL, OD-04 Vite SPA, OD-05 RN+Expo, OD-06 auth, OD-07 REST API, OD-08 media (provider-neutral), OD-09 WS (single-instance MVP), OD-10 no distributed cache, OD-11 PG-native search. FRS requires backup/recovery + security `[§30][§36]`. **FRS names no cloud provider — provider choice is deferred pending Product Owner input.** |
 | FRS References | §5 channels, §36 NFRs (scale, availability, backup, observability), §30 audit |
 | Options | **A. Major cloud, managed services** (AWS/GCP/Azure — container platform + managed PG + object storage + CDN) · **B. PaaS** (Render/Fly.io/Railway-class) · **C. VPS/self-managed** (own Docker+PG) |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted in principle, post-refinement):** Option A is the approved deployment *architecture* — managed container platform + Spring Boot modular monolith + managed PostgreSQL + object storage + CDN, single-region MVP, no Kubernetes. `ADR-012` will formalize after the OD sequence. **Binding guardrails:**
+
+1. Deployment architecture is provider-independent — **cloud provider selection remains OPEN** (no AWS/Azure/GCP lock-in in this decision).
+2. **Kubernetes is not approved** — deferred to documented triggers (§18). No Redis/Kafka/RabbitMQ/ES/OS/service mesh implied.
+3. Environment model is explicitly the 5-logical-environment model (§3) — no ambiguity.
+4. Background jobs: application-managed mechanism inside the monolith; **in-memory-only queues must not be authoritative for business-critical work**; conceptual job requirements defined (§10); no broker.
+5. Single-instance WebSocket preserved (OD-09); **HTTP replicas do NOT imply WS fan-out** — multi-instance WS fan-out is a separate future decision.
+6. **Version-controlled Infrastructure as Code** is the principle — Terraform is the current *recommended implementation option*, not an immutable requirement.
+7. **RTO/RPO remain open** — FRS specifies no numerical targets; none invented.
+8. **MVP infrastructure budget remains an open Product Owner decision.**
+9. All prior decisions (OD-01…OD-11) preserved unchanged.
+10. All deferred technologies retain explicit future triggers (§18).
 
 ### 1. Deployment Model (conceptual topology)
 
@@ -1414,17 +1427,19 @@ Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-li
 | VM-based within A | Control | More ops than containers; unnecessary | Rejected in favor of managed containers |
 | **Kubernetes** | Orchestration power | Massive overkill for a monolith — no demonstrated multi-service scale | **Not approved — deferred to scale trigger** (§18) |
 
-### 3. Environment Model
+### 3. Environment Model — explicitly 5 logical environments
 
-| Env | Infra | Purpose |
-|-----|-------|---------|
-| Development | Local (Docker + embedded/H2-free dev profile w/ PG) | Dev machines |
-| Test/QA | CI-ephemeral or small shared env | Automated/integration tests |
-| UAT | Small persistent managed env | Product validation `[FRS §37]` |
-| Staging | Prod-shaped minimal (same topology, small sizes) | Pre-release verification |
-| Production | Managed services, single region | Live |
+The model is **5 logical environments** (not ambiguous). **Test/QA is intentionally combined with CI-ephemeral testing** — at MVP, ephemeral test environments satisfy both CI-test and QA-validation needs; a dedicated always-on Test/QA environment is not justified until a dedicated QA process demands it. Rationale documented explicitly:
 
-*Recommendation: dev+test share lightweight local/CI infra; UAT/staging/prod are real deployed envs.*
+| # | Logical environment | Form | Purpose |
+|---|--------------------|------|---------|
+| 1 | **Local Development** | Local Docker; developer machines | Day-to-day dev |
+| 2 | **Ephemeral Test** (combines CI-ephemeral + Test/QA) | CI-spun disposable envs | Automated + QA validation |
+| 3 | **UAT** | Small persistent managed env | Product validation `[FRS §37]` |
+| 4 | **Staging** | Prod-shaped minimal (same topology, small sizes) | Pre-release verification |
+| 5 | **Production** | Managed services, single region | Live |
+
+If a dedicated always-on Test/QA environment is later needed (dedicated QA team, long-running env), it becomes a sixth environment — product/ops decision.
 
 ### 4. Availability & Scalability — MVP
 
@@ -1432,7 +1447,7 @@ Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-li
 - Frontend: static CDN — inherently scalable
 - PostgreSQL: managed single-primary + automated backups; **read replica only if reporting load demands** (trigger, not default)
 - Media: storage/CDN scale natively
-- WS: single backend instance at MVP — replicas for WS require sticky/fan-out *(future trigger)*
+- WS: single backend instance at MVP per OD-09 — **HTTP replicas do NOT imply WS fan-out is solved; multi-instance WS fan-out requires a separate architecture decision** *(future trigger)*
 - Failure: container auto-restart; health checks; PG managed failover *(managed-service dependent)*
 
 ### 5. Database Deployment
@@ -1455,9 +1470,20 @@ No distributed cache; in-process only; Redis deferred.
 
 PG-native FTS; no ES/OS/Algolia; dedicated-service trigger documented.
 
-### 10. Messaging/Event Infrastructure
+### 10. Messaging/Event Infrastructure + Background Jobs
 
-**No broker at MVP.** Async work = in-app job queue + schedulers inside the monolith. Broker (Kafka/RabbitMQ) enters only if a future scale scenario demands durable distributed eventing — **documented trigger, not approved.**
+**No broker at MVP.** Async work = application-managed job mechanism inside the monolith. Broker (Kafka/RabbitMQ) enters only if a future scale scenario demands durable distributed eventing — **documented trigger, not approved.**
+
+**Conceptual requirements for the application-managed job mechanism** *(architecture requirements — no implementation/framework selected)*:
+
+- **Durable job state where business-critical** — job records persisted (PostgreSQL); **in-memory-only queues must not be authoritative for business-critical work**
+- Retry with bounded attempts + backoff; **idempotency** on job handlers (dedup via keys/constraints per OD-07)
+- Duplicate-execution protection; explicit job status tracking
+- Failure handling: dead-letter/failed-job records, alerting
+- Graceful shutdown (drain in-flight jobs) + restart recovery (resume persisted jobs)
+- Transaction boundaries: job work within transactions; business write + audit atomic where required `[FRS §30]`
+- Scheduled job execution (competition close, scoring triggers, reconciliation) + watchdog processing
+- PostgreSQL remains the authoritative store for job state; no Redis/broker implied
 
 ### 11. Kubernetes / Orchestration
 
@@ -1465,7 +1491,7 @@ PG-native FTS; no ES/OS/Algolia; dedicated-service trigger documented.
 
 ### 12. CI/CD Principles (not implemented)
 
-Source control (Git, feature branches → PR); build (Maven/Gradle → container image + Vite static build); automated tests in CI; artifact registry; deploy via managed-container rollout; rollback = redeploy prior image/tag; config per environment; **Flyway migrations run at deploy time** (OD-02/03); environment promotion = immutable artifacts promoted dev→staging→prod.
+Source control (Git, feature branches → PR); build (container image + Vite static bundle); automated tests in CI; artifact registry; deploy via managed-container rollout; rollback = redeploy prior image/tag; config per environment; **Flyway migrations run at deploy time** (OD-02/03); environment promotion = immutable artifacts dev→staging→prod; **infrastructure via version-controlled IaC** *(principle — Terraform is the current recommended implementation option, not an immutable requirement; tooling choice is a separate decision)*.
 
 ### 13. Secrets & Configuration
 
@@ -1508,7 +1534,7 @@ TLS everywhere (terminated at LB/CDN); private subnet for DB (no public exposure
 
 ### Devin Recommendation
 
-**Option A — one major cloud, managed services:** containerized monolith on a managed container platform + managed PostgreSQL + object storage + CDN + managed secrets/monitoring; Terraform IaC + GitHub Actions CI/CD (tooling detail); 5-environment model; single-region MVP. **Provider (AWS/GCP/Azure) left open pending Product Owner input on credits/pricing — this OD approves the deployment *architecture*, not the vendor.**
+**Option A — one major cloud, managed services:** containerized monolith on a managed container platform + managed PostgreSQL + object storage + CDN + managed secrets/monitoring; **version-controlled IaC** (Terraform = current recommended implementation option — not immutable); CI/CD per §12; **5-logical-environment model** (Local Dev, Ephemeral Test, UAT, Staging, Production); single-region MVP. **Provider (AWS/GCP/Azure) remains OPEN** — this OD establishes the deployment architecture independent of vendor; provider selection requires Product Owner input on credits/pricing.
 
 ### Open Questions (Product Owner)
 
