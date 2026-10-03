@@ -10,7 +10,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 02 | User Profile | [MODULE-USER-PROFILE.md](MODULE-USER-PROFILE.md) | Designed |
 | 03 | Talent Skills | [MODULE-TALENT-SKILLS.md](MODULE-TALENT-SKILLS.md) | Designed |
 | 04 | Media Management | [MODULE-MEDIA-MANAGEMENT.md](MODULE-MEDIA-MANAGEMENT.md) | Designed |
-| 05 | Discovery/Search/Feed | — | Pending |
+| 05 | Discovery/Search/Feed | [MODULE-DISCOVERY-SEARCH-FEED.md](MODULE-DISCOVERY-SEARCH-FEED.md) | Designed |
 | 06 | StarMitra Connect (Messaging) | — | Pending |
 | 07 | Creative Room / Collaboration | — | Pending |
 | 08 | Project Contribution Roles | — | Pending |
