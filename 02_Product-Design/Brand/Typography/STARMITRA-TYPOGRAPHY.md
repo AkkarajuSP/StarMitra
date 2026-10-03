@@ -15,7 +15,7 @@ No font files, specimens, or naming was provided → **no font may be claimed as
 
 ## 2. Proposed Type System
 
-`Status: PROPOSED` — selected to match the logo's rounded-geometric character, mobile-first readability, and free/open availability for a startup project.
+`Status: PROPOSED` — Poppins + Inter must **not** be classified as official StarMitra typography until official brand documentation or source assets establish a font. Selected to match the logo's rounded-geometric character, mobile-first readability, and free/open availability.
 
 | Role | Typeface | Fallbacks | Rationale |
 |------|----------|-----------|-----------|

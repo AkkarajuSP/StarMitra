@@ -1,103 +1,129 @@
 # StarMitra Brand Baseline v1.0
 
 **Product:** StarMitra — *Passion to Perform*
-**Status:** Draft for review — brand/design foundation only
+**Status:** Draft — brand/design foundation only
 **Scope:** Visual standards derived from the supplied official logo. No screens, no components, no implementation. Does not modify FRS v1.1 or architecture decisions.
 
-## 1. Brand Identity
+## Status Legend
 
-| Item | Value |
-|------|-------|
-| Product | StarMitra |
-| Tagline | Passion to Perform |
-| Positioning | Mobile-first talent discovery, creative showcase, competition, collaboration and entertainment-content platform `[FRS §1]` |
-| Desired feel | Modern, premium, creative, accessible, energetic — a stage for multi-talented performers |
+Every statement in this baseline carries one of:
+
+| Status | Meaning |
+|--------|---------|
+| **OFFICIAL / VERIFIED** | Confirmed against supplied official source artwork |
+| **PROVISIONAL** | Derived from the raster logo render — **PENDING SOURCE ARTWORK VERIFICATION** |
+| **PROPOSED UI** | Recommendation not established by brand assets — pending design review |
+| **MISSING** | Needed but not supplied — request from brand, do not fabricate |
+
+## 1. Brand Identity — OFFICIAL / VERIFIED
+
+| Item | Value | Status |
+|------|-------|--------|
+| Product | StarMitra | OFFICIAL / VERIFIED (FRS v1.1) |
+| Tagline | Passion to Perform | OFFICIAL / VERIFIED (FRS v1.1 + logo lockup) |
+| Positioning | Mobile-first talent discovery, creative showcase, competition, collaboration and entertainment-content platform | OFFICIAL / VERIFIED `[FRS §1]` |
+| Desired feel | Modern, premium, creative, accessible, energetic — a stage for multi-talented performers | PROPOSED UI |
 
 ## 2. Logo
 
-### 2.1 Supplied assets
+### 2.1 Asset status
 
-Two image renders of the official logo were provided. They appear identical: the **full lockup** — emblem (navy circular field with gold star, white swoosh, lavender performer figure, gold star trail) + "StarMitra" wordmark ("Star" violet / "Mitra" ink) + coral tagline — on a light background.
+Two image renders were supplied and appear visually identical → **treated as the same primary logo** (no separate variants created).
 
-| Asset | Type | Status |
-|-------|------|--------|
-| Full lockup (emblem + wordmark + tagline), light background | Raster render | Received in-conversation; **source file pending drop-in to `../Logo/`** |
+```text
+Primary Logo:             AVAILABLE (render; source binary pending drop-in to 02_Product-Design/Brand/Logo/)
+Dark/Reversed Logo:       NOT PROVIDED
+Emblem/App Mark:          NOT PROVIDED
+Tagline-free Lockup:      NOT PROVIDED
+Favicon:                  NOT PROVIDED
+Source Vector (SVG/EPS):  NOT PROVIDED
+```
 
-### 2.2 Identifiable elements (from the render)
+### 2.2 Composition (observed — PROVISIONAL)
 
-- **Emblem:** navy circular field, white curved swoosh, white-outlined gold five-point star, light-lavender human figure reaching upward, arc of small gold stars — conveys aspiration, performance, achievement.
-- **Wordmark:** "Star" in violet, "Mitra" in near-black ink, bold rounded geometric sans.
+- **Emblem:** navy circular field, white curved swoosh, white-outlined gold five-point star, light-lavender human figure reaching upward, arc of small gold stars — aspiration, performance, achievement.
+- **Wordmark:** "Star" violet, "Mitra" near-black ink, bold rounded geometric sans.
 - **Tagline:** lowercase "passion to perform," coral, light letter-spaced.
 
-### 2.3 Usage rules
+### 2.3 Usage rules — OFFICIAL / VERIFIED (owner directives)
 
 - **Never** modify, recolor, distort, stretch, crop, or redraw the logo. Use the supplied official asset; do not recreate it in CSS/SVG unless explicitly required.
-- **Clear space:** preserve breathing room around the lockup — minimum clear space ≈ the height of the star in the emblem on all sides *(provisional, pending source artwork)*.
-- **Light backgrounds:** supplied lockup is designed for light backgrounds (ink wordmark). On navy/dark surfaces it requires either a light container or an officially produced reversed variant — **no reversed variant was supplied; do not fabricate one.**
-- **Dark backgrounds:** place the full lockup inside a white/light rounded container, or request a reversed variant from brand — do not recolor locally.
-- **Minimum size:** emblem legible down to ~24–28px; below that, use emblem only (without tagline) once such a variant exists. Full lockup minimum width ≈ 120px *(provisional)*.
-- **Incorrect usage** (enforce): no recoloring, no drop shadows, no outline effects, no rotation, no placing on busy imagery without a scrim/container, no separating and re-coloring "Star"/"Mitra" differently, no condensed/stretched rendering, no low-contrast placement.
+- Preserve logo proportions, original colors, clear space, and aspect ratio.
+- The two supplied renders = one primary logo; do not create variants from filenames.
+- Missing variants are requested, never fabricated locally.
 
-### 2.4 Missing variants (request from brand)
+### 2.4 Usage rules — PROVISIONAL (provisional pending source artwork)
+
+- Clear space ≈ emblem star height on all sides.
+- Full lockup minimum width ≈ 120px; emblem-only minimum ≈ 24–28px once that variant exists.
+- Dark surfaces: place lockup inside a white/light rounded container OR request a reversed variant — do not recolor locally (the supplied lockup's ink wordmark is designed for light backgrounds).
+- Incorrect usage: no recoloring, drop shadows, outlines, rotation, stretching, busy-image placement without container/scrim, re-coloring "Star"/"Mitra" independently, low-contrast placement.
+
+### 2.5 Missing variants — MISSING
+
+Request from brand; do not fabricate:
 
 | Needed variant | Reason |
 |----------------|--------|
-| Emblem-only mark (no wordmark) | App icon, favicon, avatar, compact headers |
+| Source vector (SVG/EPS/PDF) | Canonical master for all derivatives + color verification |
+| Emblem-only mark | App icon, favicon, avatar, compact headers |
 | Reversed/light lockup | Navy/dark surfaces, splash screens |
 | Tagline-free lockup | Small sizes where tagline is illegible |
-| Source vector (SVG/EPS/PDF) | Canonical asset for all derivatives |
 | Favicon/app-icon exports | Platform assets |
 
 ## 3. Color System
 
-Full system: [`../Colors/STARMITRA-COLOR-SYSTEM.md`](../Colors/STARMITRA-COLOR-SYSTEM.md)
+Canonical doc: [`../Colors/STARMITRA-COLOR-SYSTEM.md`](../Colors/STARMITRA-COLOR-SYSTEM.md)
 
-Summary — official palette extracted (est.): Navy `#1B2A6B`, Gold `#F6A938`, Star Yellow `#F9BE3C`, Violet `#7F4FE0`, Lavender `#D8CCF4`, Ink `#1B1C2E`, Coral `#EE6F77`, White `#FFFFFF`. Functional colors (success/warning/error/info) are **PROPOSED UI COLOR**, not brand colors.
+- Brand palette (Navy, Gold, Star Yellow, Violet, Lavender, Ink, Coral, White): **PROVISIONAL — PENDING SOURCE ARTWORK VERIFICATION**
+- Surface tint, muted text, border, success/warning/error/info: **PROPOSED UI**
 
 ## 4. Typography
 
-Full proposal: [`../Typography/STARMITRA-TYPOGRAPHY.md`](../Typography/STARMITRA-TYPOGRAPHY.md) — **Status: PROPOSED** (no official font supplied). Recommendation: Poppins (headings) + Inter (UI/body).
+Canonical doc: [`../Typography/STARMITRA-TYPOGRAPHY.md`](../Typography/STARMITRA-TYPOGRAPHY.md)
 
-## 5. UI/UX Direction
+- No official font established by supplied assets.
+- **Poppins (headings) + Inter (UI/body): PROPOSED** — must not be classified as official until brand documentation/source assets establish it.
 
-Mobile-first, modern, premium, creative, accessible. Emotional tone: the "stage" — navy as the stage night sky, gold for achievement/stardom, violet for creative energy. Restraint: gold and coral are accents, not fills.
+## 5. UI/UX Direction — PROPOSED UI
 
-## 6. Design System Principles
+Mobile-first, modern, premium, creative, accessible. Emotional tone: the "stage" — navy as night sky, gold for achievement, violet for creative energy. Gold and coral are accents, not fills.
+
+## 6. Design System Principles — PROPOSED UI
 
 ### 6.1 Layout
 
-- Mobile-first breakpoints; design at 360px up, adapt to tablet/desktop.
-- Consistent spacing scale (proposed: 4px base — 4, 8, 12, 16, 24, 32, 48).
-- Clear visual hierarchy: one primary action per screen section.
-- Touch targets ≥ 44×44px; keyboard-navigable equivalents on web.
-- Generous white space; cards over heavy dividers.
+- Mobile-first; design at 360px up, adapt to tablet/desktop.
+- Spacing scale: 4px base (4, 8, 12, 16, 24, 32, 48).
+- One primary action per screen section.
+- Touch targets ≥ 44×44px; keyboard-equivalent on web.
+- Cards over heavy dividers; generous whitespace.
 
 ### 6.2 Component inventory (concept only — do NOT implement)
 
-Buttons (primary navy / secondary violet-outline / destructive), inputs & forms, cards (talent card, competition card, project card, media card), profile components (avatar, skill chips, portfolio grid), navigation (bottom tab on mobile, top nav on web), tabs, modals/dialogs, alerts, in-app notifications, badges (verified, skill, achievement), tags (skills/categories), leaderboards, score displays (judge scores, weighted results, vote counts).
+Buttons (primary navy / secondary violet-outline / destructive), inputs & forms, cards (talent, competition, project, media), profile components (avatar, skill chips, portfolio grid), navigation (mobile bottom tab, web top nav), tabs, modals/dialogs, alerts, in-app notifications, badges (verified, skill, achievement), tags (skills/categories), leaderboards, score displays.
 
-Principles: single card system with content-type variants; skill/category rendered as colored tag/chip using category-assigned color, not hard-coded per skill; score displays use tabular numerals; leaderboard ranks use gold accent only for top positions.
+Principles: single card system with content-type variants; skill/category rendered as configurable tag/chip (category-assigned color, not hard-coded per skill); score displays use tabular numerals; gold accent reserved for top leaderboard positions.
 
-## 7. Brand ↔ Product Model
+## 7. Brand ↔ Product Model — OFFICIAL / VERIFIED (FRS-derived)
 
-The UI must make the multi-talent model legible **without exposing technical terms** `[FRS §3]`:
+UI must make the multi-talent model legible **without exposing technical terms** `[FRS §3]`:
 
-- Show talent skills as chips/tags on profiles ("Singer · Actor · Director").
-- Show a person's capacity contextually: "as Director" within a project, "competing as Singer" within a competition.
-- Never render creative skills as permission badges; system roles appear only where operationally relevant (Judge/Admin surfaces).
-- A single identity across all contexts — one profile, many skills, many contextual roles.
+- Talent skills → chips/tags on profiles ("Singer · Actor · Director").
+- Contextual capacity → "as Director" in a project, "competing as Singer" in a competition.
+- Creative skills are **never** rendered as permission badges; system roles appear only where operationally relevant (Judge/Admin surfaces).
+- One identity across all contexts — one profile, many skills, many contextual roles.
 
-## 8. Accessibility Baseline
+## 8. Accessibility Baseline — PROPOSED UI
 
-- WCAG AA contrast minimum: 4.5:1 body text, 3:1 large text/UI. *(Validate est. palette: `brand-violet` and `brand-coral` on white likely fail for small text — restrict to large/bold or decorative use until verified.)*
-- Focus states visible on all interactive elements (not color-change alone).
-- Meaning never carried by color alone — icons/text accompany status colors (submissions, moderation states).
-- Touch targets ≥ 44×44px; readable type scale; screen-reader labels on icon-only controls; error states paired with text + icon.
+- WCAG AA: 4.5:1 body text, 3:1 large text/UI. *(Provisional palette: `brand-violet`, `brand-coral`, `brand-gold` on white likely fail small-text contrast — restrict to large/bold/decorative use until verified.)*
+- Visible focus states; meaning never carried by color alone; icon+text for status.
+- Touch targets ≥ 44×44px; screen-reader labels on icon-only controls; error states = text + icon.
 
-## 9. Experience Consistency
+## 9. Experience Consistency — PROPOSED UI
 
-Same brand across Public Web, Mobile, Creator, Judge Portal, Admin Portal — allowed differentiation is *tone density*, not identity: audience/creator = full expressive brand; judge/admin = quieter surfaces, same palette and components.
+Same brand across Public Web, Mobile, Creator, Judge Portal, Admin Portal — differentiation is tone density, not identity: audience/creator = full expressive brand; judge/admin = quieter surfaces, same palette/components.
 
 ## 10. Out of Scope (this phase)
 
-Screen design, component implementation, motion spec, icon library, illustration style, copy tone-of-voice guide.
+Screen design, component implementation, motion spec, icon library, illustration style, copy tone-of-voice.
