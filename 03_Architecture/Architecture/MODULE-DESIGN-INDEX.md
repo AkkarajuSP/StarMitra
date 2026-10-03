@@ -7,7 +7,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | # | Module | Spec | Status |
 |---|--------|------|--------|
 | 01 | Authentication & Identity | [MODULE-AUTHENTICATION-IDENTITY.md](MODULE-AUTHENTICATION-IDENTITY.md) | Designed |
-| 02 | User Profile | — | Pending |
+| 02 | User Profile | [MODULE-USER-PROFILE.md](MODULE-USER-PROFILE.md) | Designed |
 | 03 | Talent Skills | — | Pending |
 | 04 | Media Management | — | Pending |
 | 05 | Discovery/Search/Feed | — | Pending |
