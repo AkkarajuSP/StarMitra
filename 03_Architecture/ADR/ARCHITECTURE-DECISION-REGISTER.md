@@ -34,7 +34,7 @@ Engineering                   → Devin
 | OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-05 | Mobile technology | **React Native (Expo)** — creator/audience scoped app; Flutter strongest alternative | PROPOSED — PENDING REVIEW |
+| OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
 | OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
 | OD-08 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
@@ -436,8 +436,22 @@ Component-driven design system implementing the brand tokens; domain-mirrored fe
 | Context | `[FRS §5]` names the **Mobile App** as the primary channel for Audience and Creators: "create, upload, discover, engage, communicate, participate." FRS does **not** specify mobile implementation details — all technology evaluation below is architecture recommendation/inference. |
 | FRS References | §5 channels, §9–10 profile/portfolio/media, §11 discovery, §12 Connect, §13 rooms, §15–18 competitions/submissions/voting, §25 notifications, §26 moderation/reporting, §35 priorities |
 | Options | **A. React Native + TypeScript (+Expo)** · **B. Flutter/Dart** · **C. Native (Kotlin + Swift)** · **D. Responsive web only / PWA** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** React Native + TypeScript + Expo is the approved mobile baseline. `ADR-005` will formalize after the OD sequence. **Binding guardrails:**
+
+1. React Native + TypeScript + Expo is the approved mobile baseline.
+2. **MVP mobile scope = Creator + Audience.**
+3. Admin and Judge experiences remain **web-based** for MVP.
+4. Mobile does **not** require full feature parity with web.
+5. React web UI reuse must **not** be assumed; shared TypeScript contracts/utilities may be evaluated selectively.
+6. Android and iOS are the intended platforms; **release sequencing is a separate decision**.
+7. Push notification provider is a **separate decision**.
+8. OTA/update tooling is a **separate decision**.
+9. Native modules/device-specific capabilities require **separate evaluation**.
+10. Expo approved as development platform — **individual Expo services/packages are not automatically approved**.
+11. Future Admin/Judge mobile experiences are not prohibited but require a future product/architecture decision.
 
 ### 1–2. Approach & Alternatives
 

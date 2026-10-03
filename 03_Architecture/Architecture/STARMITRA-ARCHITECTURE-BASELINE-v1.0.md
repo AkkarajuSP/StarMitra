@@ -234,6 +234,7 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | OD-02 | Backend technology | **Java 17+, Spring Boot 3.x, PostgreSQL, Flyway, REST/OpenAPI, WebSocket capability, Docker** |
 | OD-03 | Primary database | **PostgreSQL** — relational typed core; JSONB selectively for config entities; constraint/transaction-first invariants; advanced features (partitioning, replicas, CDC, multi-region) deferred |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** — one codebase, route-group surfaces (public/app/judge/admin); backend authZ authoritative; mobile-first mandatory; SEO/SSR open sub-decision; specific libraries not auto-approved |
+| OD-05 | Mobile | **React Native + TypeScript + Expo** — creator/audience scope only; admin/judge stay web; no UI reuse assumed; platform sequencing, push provider, OTA tooling, native modules = separate decisions |
 
 ### Future Infrastructure Decisions — NOT approved
 
@@ -245,7 +246,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-05 | Mobile stack — detailed review completed; recommendation = React Native + TS + Expo (creator/audience scope per FRS §5); formal decision pending | Mobile implementation |
+| OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
 | OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
 | OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
 | OD-08 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
