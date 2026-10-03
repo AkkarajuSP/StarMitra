@@ -20,7 +20,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 12 | Judge Management | [MODULE-JUDGE-MANAGEMENT.md](MODULE-JUDGE-MANAGEMENT.md) | Designed |
 | 13 | Judge Rubrics | [MODULE-JUDGE-RUBRICS.md](MODULE-JUDGE-RUBRICS.md) | Designed |
 | 14 | Scoring & Ranking | [MODULE-SCORING-RANKING.md](MODULE-SCORING-RANKING.md) | Designed |
-| 15 | Round Progression | — | Pending |
+| 15 | Round Progression | [MODULE-ROUND-PROGRESSION.md](MODULE-ROUND-PROGRESSION.md) | Designed |
 | 16 | Leaderboards | — | Pending |
 | 17 | Notifications | — | Pending |
 | 18 | Moderation / Admin | — | Pending |
