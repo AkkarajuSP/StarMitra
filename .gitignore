@@ -10,11 +10,11 @@ Desktop.ini
 .DS_Store
 
 # Common build artifacts (uncomment per stack when development begins)
-# node_modules/
-# dist/
+node_modules/
+dist/
 # build/
 # __pycache__/
 # *.pyc
-# target/
+target/
 # bin/
 # obj/

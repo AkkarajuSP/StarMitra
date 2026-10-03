@@ -1,8 +1,0 @@
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\architecture\ModuleBoundaryTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\contract\OpenApiContractTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\integration\FlywaySchemaIT.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\modules\identity\application\OtpServiceTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\modules\identity\application\RefreshTokenServiceTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\platform\error\ProblemDetailsTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\platform\pagination\CursorTest.java
-C:\Users\sri26\OneDrive\Desktop\StarMitra\backend\src\test\java\com\starmitra\security\SecurityBaselineTest.java

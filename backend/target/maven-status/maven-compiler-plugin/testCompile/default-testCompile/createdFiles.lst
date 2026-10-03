@@ -1,8 +1,0 @@
-com\starmitra\contract\OpenApiContractTest.class
-com\starmitra\modules\identity\application\OtpServiceTest.class
-com\starmitra\security\SecurityBaselineTest.class
-com\starmitra\architecture\ModuleBoundaryTest.class
-com\starmitra\integration\FlywaySchemaIT.class
-com\starmitra\platform\error\ProblemDetailsTest.class
-com\starmitra\modules\identity\application\RefreshTokenServiceTest.class
-com\starmitra\platform\pagination\CursorTest.class
