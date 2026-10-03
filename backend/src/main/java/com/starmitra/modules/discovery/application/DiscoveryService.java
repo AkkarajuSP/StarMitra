@@ -1,6 +1,7 @@
 package com.starmitra.modules.discovery.application;
 
 import com.starmitra.modules.moderation.application.ProfileRestrictionContract;
+import com.starmitra.modules.social.application.SocialSignalContract;
 import com.starmitra.platform.error.ApiException;
 import com.starmitra.platform.error.ErrorCode;
 import com.starmitra.platform.pagination.Cursor;
@@ -39,10 +40,13 @@ public class DiscoveryService {
 
     private final JdbcTemplate jdbc;
     private final ProfileRestrictionContract restriction;
+    private final SocialSignalContract social;
 
-    public DiscoveryService(JdbcTemplate jdbc, ProfileRestrictionContract restriction) {
+    public DiscoveryService(JdbcTemplate jdbc, ProfileRestrictionContract restriction,
+                            SocialSignalContract social) {
         this.jdbc = jdbc;
         this.restriction = restriction;
+        this.social = social;
     }
 
     public record Item(String type, UUID id, Map<String, Object> fields) {}
@@ -95,7 +99,7 @@ public class DiscoveryService {
     /** Media: only VERIFIED + processed + PUBLIC + not rejected — filenames only (only searchable field). */
     private PageResult searchMedia(String q, int size, int offset) {
         String sql = """
-            select m.id, m.original_filename, m.media_type, m.created_at
+            select m.id, m.original_filename, m.media_type, m.created_at, m.owner_user_id
             from media_assets m
             where m.visibility = 'PUBLIC' and m.upload_state = 'VERIFIED'
               and m.processing_state in ('COMPLETED','NOT_REQUIRED')
@@ -134,13 +138,15 @@ public class DiscoveryService {
     // ---------- FEED (deterministic recency surface) ----------
 
     /**
-     * MVP feed = recent deliverable PUBLIC media — deterministic
-     * (created_at DESC, id DESC) keyset. Follow/engagement boosting is a
-     * documented provisional slot pending M21's FollowContract.
+     * MVP feed = deliverable PUBLIC media — deterministic:
+     *   followed-creator boost (M21 SocialSignalContract) DESC,
+     *   then created_at DESC, id DESC (keyset). Engagement-weight
+     *   ranking remains a documented PROVISIONAL slot.
      */
     @Transactional(readOnly = true)
     public PageResult feed(UUID viewer, String cursor, Integer limit) {
         int size = Cursor.limit(limit);
+        var followees = social.followeeIdsOf(viewer);
         Object afterTs = null; UUID afterId = null;
         if (cursor != null) {
             String[] p = Cursor.decode(cursor);
@@ -161,6 +167,15 @@ public class DiscoveryService {
                 ? jdbc.query(sql.formatted(""), (rs, i) -> toItem("MEDIA", rs), size + 1)
                 : jdbc.query(sql.formatted("and (m.created_at, m.id) < (?, ?)"),
                         (rs, i) -> toItem("MEDIA", rs), afterTs, afterId, size + 1);
+        // followed-creator boost — deterministic, applied to the fetched window
+        rows = rows.stream()
+                .sorted(java.util.Comparator
+                        .<Item, Boolean>comparing(i -> followees.contains(
+                                (UUID) i.fields().get("ownerUserId"))).reversed()
+                        .thenComparing(i -> String.valueOf(i.fields().get("createdAt")),
+                                java.util.Comparator.reverseOrder())
+                        .thenComparing(i -> i.id().toString(), java.util.Comparator.reverseOrder()))
+                .toList();
         boolean hasMore = rows.size() > size;
         var items = new ArrayList<>(rows.subList(0, Math.min(size, rows.size())));
         String next = null;
@@ -181,10 +196,14 @@ public class DiscoveryService {
                            "location", nullTo(rs.getString("location"))));
             case "SKILL" -> new Item("SKILL", (UUID) rs.getObject("id"),
                     Map.of("name", rs.getString("name"), "status", rs.getString("status")));
-            default -> new Item("MEDIA", (UUID) rs.getObject("id"),
-                    Map.of("filename", nullTo(rs.getString("original_filename")),
-                           "mediaType", rs.getString("media_type"),
-                           "createdAt", String.valueOf(rs.getObject("created_at"))));
+            default -> {
+                var f = new java.util.LinkedHashMap<String, Object>();
+                f.put("filename", nullTo(rs.getString("original_filename")));
+                f.put("mediaType", rs.getString("media_type"));
+                f.put("createdAt", String.valueOf(rs.getObject("created_at")));
+                f.put("ownerUserId", rs.getObject("owner_user_id"));
+                yield new Item("MEDIA", (UUID) rs.getObject("id"), f);
+            }
         };
     }
 

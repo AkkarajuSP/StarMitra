@@ -11,4 +11,7 @@ public interface MediaReferenceContract {
 
     /** True when the asset exists, belongs to owner, and is usable (VERIFIED + not rejected). */
     boolean isUsableBy(UUID mediaId, UUID ownerUserId);
+
+    /** True when the caller may view/engage the asset (owner, or PUBLIC+processed+unrestricted). */
+    boolean isDeliverableTo(UUID mediaId, UUID callerUserId);
 }

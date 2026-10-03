@@ -149,6 +149,14 @@ public class MediaService implements MediaReferenceContract {
         return new UrlView(url.url(), url.expiresAt().toString(), url.method());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isDeliverableTo(UUID mediaId, UUID callerUserId) {
+        return assets.findById(mediaId)
+                .map(a -> a.getOwnerUserId().equals(callerUserId) || deliverableTo(a))
+                .orElse(false);
+    }
+
     // ---------- M02 contract ----------
 
     @Override
