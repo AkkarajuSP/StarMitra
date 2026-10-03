@@ -15,7 +15,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 07 | Creative Room / Collaboration | [MODULE-CREATIVE-ROOMS.md](MODULE-CREATIVE-ROOMS.md) | Designed |
 | 08 | Portfolio | [MODULE-PORTFOLIO.md](MODULE-PORTFOLIO.md) | Designed |
 | 09 | Competitions | [MODULE-COMPETITIONS.md](MODULE-COMPETITIONS.md) | Designed |
-| 10 | Submissions | — | Pending |
+| 10 | Submissions | [MODULE-SUBMISSIONS.md](MODULE-SUBMISSIONS.md) | Designed |
 | 11 | Audience Voting | — | Pending |
 | 12 | Judge Management | — | Pending |
 | 13 | Judge Rubrics | — | Pending |
