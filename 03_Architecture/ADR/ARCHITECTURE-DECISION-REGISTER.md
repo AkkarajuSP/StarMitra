@@ -31,7 +31,7 @@ Engineering                   → Devin
 | ID | Topic | Recommendation | Status |
 |----|-------|----------------|--------|
 | OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
-| OD-02 | Backend technology | Java 17+ / Spring Boot 3.x *(revised after detailed evaluation — was Node.js/TypeScript/NestJS)* | PROPOSED — PENDING REVIEW |
+| OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-03 | Primary database | PostgreSQL | PROPOSED — PENDING REVIEW |
 | OD-04 | Web frontend | React + Next.js (one framework, all four surfaces) | PROPOSED — PENDING REVIEW |
 | OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
@@ -77,8 +77,38 @@ This decision does NOT mean: one large unstructured codebase · shared unrestric
 | Context | 14+ interdependent domains, config-driven engines (rubrics, rounds, scoring weights), strict transactional integrity for the competition pipeline (submission → vote → evaluation → scoring → ranking → qualification → audit), real-time chat, media orchestration, 4 client surfaces. |
 | FRS References | §6 roles, §10 media, §12 Connect, §15–24 competition pipeline, §30 audit, §36 NFRs, §38 guidance |
 | Options | **A. Java 17+ / Spring Boot 3.x** · **B. Node.js + TypeScript + NestJS** · **C. Python + FastAPI** *(option set constrained by review; prior wider list superseded)* |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** Java 17+ / Spring Boot 3.x is the approved backend direction. Approved constraints and non-approvals below; `ADR-002` will formalize after the OD review sequence completes.
+
+**Accepted Technology Decisions:**
+
+```text
+Java 17+
+Spring Boot 3.x
+PostgreSQL
+Flyway
+REST/OpenAPI
+WebSocket capability
+Docker
+```
+
+**NOT automatically approved — Future Infrastructure Decisions** (each requires its own justification/OD):
+
+```text
+Redis
+Kafka
+RabbitMQ
+Elasticsearch/OpenSearch
+Kubernetes
+Service Mesh
+```
+
+**Architecture constraints binding OD-02:**
+
+- Preserve OD-01 modular monolith with strong internal domain/module boundaries — evaluate/use **Spring Modulith** or an equivalent mechanism to enforce them. The 15 domains are NOT converted to 15 independently deployed services.
+- **Realtime isolation:** the main backend remains Java + Spring Boot; StarMitra Connect realtime capability is architecturally isolated from core domain logic. MVP covers FRS messaging only (1:1, group/project conversations, text, media attachments, delivery/read status, project-linked threads, notification integration). Live video/streaming = future scope. No separate messaging microservice now — the boundary is designed for extraction if real scale requires it.
 
 ### Criteria Comparison
 

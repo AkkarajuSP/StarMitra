@@ -13,6 +13,7 @@ Every significant statement in this document carries one of the following status
 | `[FRS §n]` / `[BR-xx]` | Functional requirement or business rule directly established by FRS v1.1 — binding unless a product-level change is approved |
 | `[PD-xx]` | Approved product decision captured in FRS v1.1 §40 — binding |
 | `[Proposed]` | Proposed technical/architecture decision — NOT yet approved; requires ADR review |
+| `[Accepted]` | Approved by product/technical review — ADR formalization pending |
 | `[Open]` | Open decision — insufficient information; must be resolved before dependent work |
 
 ---
@@ -62,7 +63,9 @@ External system touchpoints `[Proposed/Open]`: push notification provider, email
 
 Detail in [SYSTEM-ARCHITECTURE.md](SYSTEM-ARCHITECTURE.md).
 
-`[Proposed]` Modular monolith backend exposing a versioned REST API, with internal domain modules enforcing ownership boundaries. Async work (media processing, notifications, score computation triggers, audit writes) through an internal job/event mechanism. Rationale: FRS domains are highly interdependent (competition → submission → vote → evaluation → scoring → ranking → leaderboard → notification); a monolith preserves transactional integrity where the FRS demands it `[FRS §36]` while module boundaries preserve the option to extract services later.
+`[Accepted]` Modular monolith backend (OD-01 direction; ADR formalization pending) exposing a versioned REST API, with internal domain modules enforcing ownership boundaries. Async work (media processing, notifications, score computation triggers, audit writes) through an internal job/event mechanism. Rationale: FRS domains are highly interdependent (competition → submission → vote → evaluation → scoring → ranking → leaderboard → notification); a monolith preserves transactional integrity where the FRS demands it `[FRS §36]` while module boundaries preserve the option to extract services later.
+
+`[Accepted]` Backend platform (OD-02): **Java 17+, Spring Boot 3.x, PostgreSQL, Flyway, REST/OpenAPI, WebSocket capability, Docker.** Module boundaries enforced via **Spring Modulith** or equivalent. Realtime (StarMitra Connect) architecturally isolated from core domain logic; extraction deferred until scale requires.
 
 `[Open]` Whether any capability (e.g., media transcoding, real-time messaging) justifies a separate deployable from day one.
 
@@ -121,7 +124,7 @@ Authorization checks MUST read `UserSystemRole` only. `TalentSkill`, `ProjectCon
 | Admin web | SPA — `[Proposed]` | Configuration-heavy; form-driven UI for rubric builder |
 | Judge web | SPA, may share codebase/components with Admin web — `[Proposed]` | Focused workflow: assigned entries → dynamic form → submit |
 
-`[Proposed]` Backend modules mirror D1–D15. Each module owns its API surface, business rules, and data. Cross-module reads go through explicit contracts (queries/events), not shared tables — enforced by code review/module linting `[Open: enforcement mechanism]`.
+`[Accepted]` Backend modules mirror D1–D15 (Java 17+ / Spring Boot 3.x, Spring Modulith boundary enforcement — OD-01/OD-02). Each module owns its API surface, business rules, and data. Cross-module reads go through explicit contracts (queries/events), not shared tables — enforced by module-boundary checks `[Open: enforcement tooling]`.
 
 ## 8. Data Architecture
 
@@ -219,22 +222,39 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | R6 | Single-user-multiple-identity UX confusion | Adoption risk | Clear IA in product design phase |
 | R7 | Immutable-version discipline (rubrics, evaluations) accidentally violated by "quick fixes" | Data-integrity risk | DB-level constraints + write-path review |
 
-## 20. Open Decisions
+## 20. Decisions
+
+### Accepted Technology Decisions
+
+`[Accepted]` — approved in review, ADR formalization pending:
+
+| # | Decision | Result |
+|---|----------|--------|
+| OD-01 | Architecture style | **Modular monolith** — 15-domain structure, strong boundaries via Spring Modulith (or equivalent), future extraction preserved |
+| OD-02 | Backend technology | **Java 17+, Spring Boot 3.x, PostgreSQL, Flyway, REST/OpenAPI, WebSocket capability, Docker** |
+
+### Future Infrastructure Decisions — NOT approved
+
+The following are **not** automatically approved by OD-02 and each requires its own justification/decision: **Redis, Kafka, RabbitMQ, Elasticsearch/OpenSearch, Kubernetes, Service Mesh.** They remain evaluated inside their respective ODs (OD-08 realtime, OD-09 cache, OD-10 search, OD-11 cloud/deployment).
+
+### Open Decisions
+
+Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (single authoritative scheme).
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-1 | Backend language/framework | Implementation start |
-| OD-2 | DBMS selection | Schema design |
-| OD-3 | Mobile stack (native vs cross-platform) | Mobile implementation |
-| OD-4 | Web frontend stack(s) | Web implementation |
-| OD-5 | Identity/OTP provider (managed vs in-house) | D1 implementation |
-| OD-6 | Object storage + CDN + transcoding providers | D3 implementation |
-| OD-7 | Push/email/SMS providers | D13 implementation |
-| OD-8 | Real-time mechanism for chat/live counters | D6 implementation |
-| OD-9 | Cloud provider + compute platform | Deployment design |
-| OD-10 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
-| OD-11 | Target scale/availability/RTO-RPO numbers | Sizing decisions |
-| OD-12 | Whether any module ships as separate service at MVP | Deployment design |
+| OD-03 | Primary database — PostgreSQL already inside OD-02 accepted stack; formal decision pending | Schema design |
+| OD-04 | Web frontend stack | Web implementation |
+| OD-05 | Mobile stack (native vs cross-platform) | Mobile implementation |
+| OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
+| OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
+| OD-08 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
+| OD-09 | Cache — Redis is **not** auto-approved | D12/scaling needs |
+| OD-10 | Search (DB FTS vs dedicated engine) | D5 implementation |
+| OD-11 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
+| OD-12 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
+
+Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-11.
 
 ## 21. Proposed ADRs
 
@@ -242,8 +262,8 @@ To be created in `03_Architecture/ADR/` upon review (numbered when drafted):
 
 | # | Subject | Status |
 |---|---------|--------|
-| ADR-TBD-1 | Modular monolith vs distributed services for MVP | Proposed |
-| ADR-TBD-2 | Relational DBMS selection | Proposed |
+| ADR-001 | Architecture style — modular monolith | Accepted — pending formalization |
+| ADR-002 | Backend platform — Java 17+ / Spring Boot 3.x | Accepted — pending formalization |
 | ADR-TBD-3 | API style/versioning/authn scheme | Proposed |
 | ADR-TBD-4 | Media pipeline (upload → process → deliver) | Proposed |
 | ADR-TBD-5 | Notification event-driven design | Proposed |
