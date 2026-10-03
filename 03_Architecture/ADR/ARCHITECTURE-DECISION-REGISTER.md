@@ -10,7 +10,8 @@ Single working register for all major StarMitra architecture decisions (OD-01 �
 ## Status Convention
 
 ```text
-PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW   (all entries currently)
+PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW   (initial state)
+PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL  (review direction agreed; not yet accepted)
 ACCEPTED   (only after review; then converted to a numbered ADR)
 SUPERSEDED (later change replaces it)
 ```
@@ -29,8 +30,8 @@ Engineering                   → Devin
 
 | ID | Topic | Recommendation | Status |
 |----|-------|----------------|--------|
-| OD-01 | Architecture style | Modular monolith | PROPOSED — PENDING REVIEW |
-| OD-02 | Backend technology | Node.js + TypeScript + NestJS | PROPOSED — PENDING REVIEW |
+| OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
+| OD-02 | Backend technology | Java 17+ / Spring Boot 3.x *(revised after detailed evaluation — was Node.js/TypeScript/NestJS)* | PROPOSED — PENDING REVIEW |
 | OD-03 | Primary database | PostgreSQL | PROPOSED — PENDING REVIEW |
 | OD-04 | Web frontend | React + Next.js (one framework, all four surfaces) | PROPOSED — PENDING REVIEW |
 | OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
@@ -60,8 +61,12 @@ Engineering                   → Devin
 | Cost/Complexity | A lowest; C low-moderate; B highest (infra + ops + dev tooling). |
 | Risks | A: boundary erosion → big-ball-of-mud (mitigate: module lint rules, no cross-module table access, review). B: premature distribution → missed MVP, integrity bugs across services. C: extraction never happens / happens messily. |
 | Devin Recommendation | **A — Modular monolith** for MVP, designed for C: module boundaries drawn so media worker/messaging can extract to satellite services when load or team size justifies. Consistent with baseline §5. |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
 | Decision Owner | Product + Technical Review |
+
+**Review direction (first review, recorded verbatim):** StarMitra will use a modular monolith for MVP with explicit bounded domain/module boundaries so individual domains can be extracted into independently deployable services later if actual scale, reliability, organizational, or domain requirements justify it. The 15-domain structure from the Architecture Baseline is maintained.
+
+This decision does NOT mean: one large unstructured codebase · shared unrestricted database access between modules · no domain boundaries · no asynchronous processing · no future microservices. Strong internal boundaries are mandatory. Final `ADR-001` will be created after the full decision review completes.
 
 ## OD-02 — Backend Technology
 
@@ -69,18 +74,62 @@ Engineering                   → Devin
 |-------|---------|
 | Decision ID | OD-02 |
 | Decision | Backend language/framework for the StarMitra API (assuming OD-01 modular monolith). |
-| Context | Needs: many CRUD domains, config-driven entities (rubrics, rounds), real-time chat, media pipeline hooks, transactional scoring, 4 client surfaces. |
-| FRS References | §38 implementation guidance; §36 NFRs |
-| Options | **A. Node.js + TypeScript + NestJS.** **B. Python (FastAPI or Django).** **C. Java/Kotlin + Spring Boot.** **D. C#/.NET 8+.** **E. Go.** **F. Ruby on Rails / PHP Laravel.** |
-| Advantages | **A:** one language across web+mobile+API (if OD-04/05 = React/RN); NestJS modules map 1:1 to D1–D15; strong typing shared with clients via generated types; mature ORMs (Prisma/TypeORM); native WS libs; huge ecosystem. **B:** FastAPI = fast dev + OpenAPI-native; Django = batteries-included admin (useful for §27 admin portal); great for config-heavy app. **C:** most mature enterprise stack; excellent transaction/concurrency story; strong typing. **D:** high performance, excellent tooling, clean async model. **E:** best throughput per watt; simple deploys; great concurrency. **F:** fastest CRUD scaffolds; admin ecosystems. |
-| Disadvantages | **A:** single-threaded runtime — CPU work must go to workers; typing is structural (weaker than C/D's nominal); churn in JS tooling. **B:** weaker concurrency (GIL) for chat-heavy loads; dynamic typing risk at scale (FastAPI+Pydantic mitigates); second language in stack if clients are TS. **C:** slower iteration; heavyweight for MVP team size; ceremony. **D:** smaller OSS/community for media pipeline helpers; Windows-first culture historically (less now). **E:** weakest ORM/domain-modeling maturity; verbose; slower dev on CRUD+config domains; hiring. **F:** declining talent pool momentum; performance ceiling; weaker typing. |
-| StarMitra Fit | **A:** strong — shared TS types from OpenAPI→clients; Socket.IO for OD-08; BullMQ-class job queues; Prisma JSONB handling suits config-driven rubrics (§20). **B:** strong alternative if team is Python-heavy — Django admin accelerates §27. **C/D:** solid but heavier than MVP needs. **E:** poor fit for config-heavy CRUD domains. **F:** acceptable but weakest forward momentum. |
-| Team Impact | A: one skill set covers API + all frontends → smallest team surface. B: Python+TS split. C/D: dedicated backend specialists. E/F: narrower hiring. |
-| Cost/Complexity | A/B lowest for small team; C/D moderate; E/F moderate with hidden costs. |
-| Risks | A: CPU-bound tasks (media, scoring batches) need worker discipline; npm supply-chain diligence. B: chat at scale needs careful async design. Any: lock-in is low — API contract is the real asset. |
-| Devin Recommendation | **A — Node.js + TypeScript + NestJS** (Prisma + PostgreSQL, Socket.IO, BullMQ). Maximizes shared language/types across all clients; module system maps cleanly to D1–D15. **Runner-up:** FastAPI if the team's center of gravity is Python — reassess at review with actual team skills. |
+| Context | 14+ interdependent domains, config-driven engines (rubrics, rounds, scoring weights), strict transactional integrity for the competition pipeline (submission → vote → evaluation → scoring → ranking → qualification → audit), real-time chat, media orchestration, 4 client surfaces. |
+| FRS References | §6 roles, §10 media, §12 Connect, §15–24 competition pipeline, §30 audit, §36 NFRs, §38 guidance |
+| Options | **A. Java 17+ / Spring Boot 3.x** · **B. Node.js + TypeScript + NestJS** · **C. Python + FastAPI** *(option set constrained by review; prior wider list superseded)* |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### Criteria Comparison
+
+| Criteria | A. Java / Spring Boot | B. Node / NestJS | C. Python / FastAPI |
+|----------|----------------------|------------------|---------------------|
+| **Domain complexity** | Excellent. Spring Modulith enforces bounded contexts in-code — maps directly to D1–D15; mature patterns for config-driven engines (rubric builder, round configs) and deep entity graphs (User↔Skill↔Role↔ContributionRole). | Good. Nest modules map to D1–D15; DI + decorators are clean; deep invariants rely on convention/discipline more than enforcement. | Adequate. Router/service layering is manual; no module-boundary enforcement; dynamic typing raises drift risk in deep domain graphs (Pydantic mitigates boundaries). |
+| **Transactions** (submissions, votes, scoring, ranking, tie-break, audit, concurrency) | Best-in-class. Declarative `@Transactional`, explicit isolation/locking (optimistic+pessimistic), JPA maturity for the scoring pipeline's invariants; virtual threads ease concurrent load. | Good. Prisma/TypeORM transactions cover typical flows; concurrency controls (row locks, versioning) are more manual; async/await obscures transaction scope. | Adequate–Good. SQLAlchemy has full tx control; async-session transaction semantics are error-prone for junior devs; sync path solid. |
+| **Security** (authN, authZ, RBAC, JWT/OIDC, validation, rate limit, maturity) | Strongest. Spring Security is the reference implementation for JWT/OIDC/RBAC; method-level security cleanly enforces the `TalentSkill ≠ SystemRole` rule; Keycloak/Azure-AD integrations first-class; most enterprise-proven. | Good. Passport/JWT/guards; RBAC patterns hand-rolled but clear; mature but less standardized. | Adequate–Good. OAuth2 helpers + JWT libs; RBAC largely manual — discipline-dependent. |
+| **REST/API** (validation, DTOs, versioning, OpenAPI, errors) | Strong. Bean Validation + DTOs, springdoc-openapi, `@ControllerAdvice` error model, API versioning straightforward, MockMvc for API tests. | Strong. class-validator DTOs, Swagger decorators, exception filters, built-in URI versioning. | Best ergonomics. Pydantic auto-validation + auto-OpenAPI from type hints; versioning is manual but trivial. |
+| **Async processing** (media, notifications, indexing, analytics, score aggregation, jobs) | Strong. `@Async`, schedulers, **Spring Batch** for scoring/aggregation runs, first-class Kafka/RabbitMQ integration. | Good. BullMQ (Redis-backed queues), event emitters; capable but Redis-dependent for real job infra. | Adequate. Needs Celery/ARQ sidecar stack for real jobs; asyncio fine for I/O-bound only. |
+| **Realtime** (Connect chat, WS, groups, delivery/read status) | Adequate. Spring WebSocket/STOMP handles rooms + receipts; scaling needs a broker relay; least ergonomic of the three. | Strongest. Socket.IO is reference-grade (rooms, acks → delivery/read receipts, auto-reconnect); natural fit for D6. | Adequate. FastAPI WS + python-socketio work; least polished at scale. |
+| **PostgreSQL** (tx, relational, JSONB, pooling, migrations, ORM) | Strong. Hibernate/jOOQ + JSONB types, HikariCP (industry-best pooling), Flyway/Liquibase migrations, Testcontainers integration tests. | Good. Prisma (excellent DX, JSONB, migrations) or TypeORM; pooling less tunable. | Good. SQLAlchemy 2.0 + Alembic + asyncpg; JSONB supported; mature. |
+| **Testing** (unit, integration, API, contract, E2E, CI) | Strong. JUnit5, Mockito, MockMvc, **Testcontainers** (real-PG tests), Spring Cloud Contract for consumer contracts. | Strong. Jest, supertest, Pact; easy DI mocking. | Good. pytest fixtures excellent, httpx TestClient, testcontainers-python. |
+| **Maintainability** (boundaries, refactoring, onboarding) | Strong. Compiler-checked structure, best-in-class IDE refactoring, enforced layering — scales to large codebase; steeper onboarding curve. | Good. TS types + Nest conventions; churn risk in JS tooling; refactoring good. | Good early, degrades at scale — minimal enforced structure invites drift in a 15-domain codebase. |
+| **Scalability** (horizontal, stateless, workers, WS, DB) | Strong. Stateless by design, virtual threads for concurrency, proven clustering/scale patterns. | Good. Stateless easy; WS scale-out needs Redis adapter; CPU-bound work needs worker processes (single-threaded runtime). | Good. Async I/O scales well for I/O; GIL caps CPU concurrency per process → multi-process pattern standard. |
+| **Microservice extraction** (media, messaging, notifications, search, analytics) | Strongest. Spring Modulith boundaries → clean seams; Kafka/RabbitMQ/messaging maturity is the best of the three for event-driven extraction. | Good. Module boundaries help; BullMQ/NATS/Kafka clients exist; extraction viable. | Adequate. Boundaries are manual; extraction possible but contracts less typed/enforced. |
+| **Team fit** (productivity, learning curve, debugging, local dev, hiring) | Slower initial velocity (ceremony, JVM warmup); top-tier docs/debugging; large global hiring pool; heavier local resource footprint. | Fastest for TS-capable devs; one-language stack with React/RN; quick onboarding; npm churn. | Fastest to write and read; simplest local setup; under-structuring risk as team grows. |
+| **Ecosystem** | Deepest enterprise ecosystem (batch, security, integration, observability). | Widest web ecosystem; npm supply-chain diligence needed. | Broad (data/AI strength) though less deep for transactional enterprise apps. |
+| **Operational complexity** | Moderate–high. JVM tuning/memory; slower cold starts (mitigable). | Moderate. Process management + worker tiers; light runtime. | Moderate. Multi-process workers standard; light runtime. |
+| **Frontend/mobile alignment** (React/Next/RN/TypeScript) | Different language — but OpenAPI codegen produces identical TS client types regardless; practical parity with B on *code* sharing. | Same language — real benefit is **toolchain/skill consolidation**, not code reuse: generated types are identical either way. Quantified benefit ≈ hiring/onboarding simplicity + shared lint/test patterns, not shared implementation code. | Same as A — parity via codegen; plus Python splits the stack's skill profile. |
+
+### Devin Recommendation
+
+**Option A — Java 17+ / Spring Boot 3.x.**
+
+*Revised from the initial register recommendation (Node.js/NestJS). The deeper criteria pass changed the weighting — the revision is recorded honestly rather than silently updated.*
+
+**Why A, factually:**
+
+- StarMitra's hardest engineering problem is the **transactional competition core** — concurrent voting, independent judge evaluations, weighted aggregation, ranking, tie-breaks, authorized overrides, all with append-only audit `[FRS §18–24][§30]`. Spring's declarative transactions, explicit locking, and Spring Batch are the strongest answer here.
+- **Security maturity** matters for RBAC + judge/admin isolation + the `TalentSkill ≠ SystemRole` rule; Spring Security is the most battle-tested option.
+- OD-01 mandates a **modular monolith designed for future extraction** — Spring Modulith *enforces* module boundaries in code, and the Spring messaging ecosystem (Kafka/RabbitMQ) is the strongest extraction runway for media/messaging/notifications.
+- PostgreSQL story is the deepest: HikariCP, Flyway/Liquibase, JSONB support, Testcontainers.
+- The previously-considered direction (Java/Spring Boot) is noted as context — this recommendation stands on the evaluation above, not on that context.
+
+**Honest costs of A:**
+
+- Slower initial dev velocity and more ceremony than B or C — real MVP-speed cost for a small team.
+- Heavier runtime/ops (JVM tuning, memory) vs Node/Python.
+- **Weakest realtime ergonomics** of the three — chat delivery/read receipts are more natural in Socket.IO. Mitigations: Spring WebSocket/STOMP covers the FRS's actual requirements (delivery + read status, group rooms); or, under the OD-01 extraction path, messaging can later be a satellite service in whatever runtime fits.
+- Language split vs the TypeScript frontend/mobile stack — mitigated because client types are generated from OpenAPI identically either way; the real sacrifice is one-language hiring/toolchain simplicity, not code reuse.
+
+**When B (NestJS) would instead be right:** if MVP velocity and single-language staffing outweigh the transactional-depth argument, or the team is firmly TS-centered. **When C (FastAPI):** if the team's strength is Python — but it's the weakest fit for module enforcement and realtime.
+
+### Open Questions (need Product/Technical input)
+
+1. **Team skills today:** JVM experience available or acquirable? (Decisive between A and B.)
+2. **MVP velocity pressure:** is speed-to-market or long-term platform robustness the higher priority for v1?
+3. **Realtime expectations:** are Socket.IO-grade chat features (typing indicators, presence) needed at MVP, or is delivery/read status sufficient?
+4. **Hiring market assumption:** local JVM vs Node talent availability/cost.
+5. **Runtime profile:** expected competition-peak concurrency — does it push toward JVM's concurrency model?
 
 ## OD-03 — Primary Database
 
