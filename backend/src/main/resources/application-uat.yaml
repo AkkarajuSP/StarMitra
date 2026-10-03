@@ -1,0 +1,13 @@
+# UAT — managed PostgreSQL, secure cookies on
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  auth:
+    cookie:
+      secure: true
+      same-site: Lax

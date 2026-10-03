@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: starmitra-backend
+  jpa:
+    hibernate:
+      ddl-auto: none            # Flyway is authoritative — never generate schema
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/starmitra}
+    username: ${DB_USER:starmitra}
+    password: ${DB_PASSWORD:starmitra}
+    driver-class-name: org.postgresql.Driver
+
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+app:
+  jwt:
+    issuer: starmitra
+    access-token-ttl: PT15M
+    # HMAC dev secret — overridden by env/profiles; rotate for real deployments
+    secret: ${JWT_SECRET:dev-only-not-for-production-change-me-32+}
+  refresh-token:
+    ttl: P30D
+  otp:
+    ttl: PT5M
+    max-attempts: 5
+    resend-cooldown: PT60S
+    lockout-window: PT15M
+  auth:
+    cookie:
+      name: sm_access
+      secure: false             # true in non-local profiles
+      same-site: Strict
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:19006}
+
+logging:
+  pattern:
+    level: "%5p [corrId=%X{correlationId:-}]"

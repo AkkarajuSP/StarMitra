@@ -1,0 +1,17 @@
+# test profile — used by integration tests (Testcontainers overrides datasource)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/starmitra_it}
+    username: ${DB_USER:starmitra}
+    password: ${DB_PASSWORD:starmitra}
+  flyway:
+    clean-disabled: false     # tests may clean the dedicated IT database only
+app:
+  jwt:
+    access-token-ttl: PT5M
+  otp:
+    ttl: PT1M
+    max-attempts: 3
+  auth:
+    cookie:
+      secure: false

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feature/**]
+  pull_request:
+
+jobs:
+  openapi-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate OpenAPI structure
+        run: |
+          npx --yes js-yaml 05_API-Specifications/openapi.yaml > /dev/null
+          echo "openapi.yaml parses"
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: starmitra_it
+          POSTGRES_USER: starmitra
+          POSTGRES_PASSWORD: starmitra
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U starmitra" --health-interval 5s
+          --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Build + test (unit, contract, architecture)
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/starmitra_it
+          DB_USER: starmitra
+          DB_PASSWORD: starmitra
+          SPRING_PROFILES_ACTIVE: test
+        run: mvn -B verify
+      - name: Flyway migration validate (schema check)
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/starmitra_it
+          DB_USER: starmitra
+          DB_PASSWORD: starmitra
+        run: mvn -B -Dtest=FlywaySchemaIT test
+
+  flyway-validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: starmitra
+          POSTGRES_USER: starmitra
+          POSTGRES_PASSWORD: starmitra
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U starmitra" --health-interval 5s
+          --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations to clean DB
+        run: |
+          for f in db/migration/V*.sql; do
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f" || exit 1
+          done
+        env:
+          DATABASE_URL: postgresql://starmitra:starmitra@localhost:5432/starmitra
+          PGPASSWORD: starmitra

@@ -1,0 +1,20 @@
+# prod — managed PostgreSQL, hardened cookies; secrets via env only
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        jdbc.batch_size: 50
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  auth:
+    cookie:
+      secure: true
+      same-site: Strict
+logging:
+  level:
+    com.starmitra: INFO

@@ -1,0 +1,37 @@
+# Local development stack — PostgreSQL only (no Redis/Kafka/etc per ADRs)
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: starmitra-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-starmitra}
+      POSTGRES_USER: ${DB_USER:-starmitra}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-starmitra}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-starmitra}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-starmitra}
+      DB_USER: ${DB_USER:-starmitra}
+      DB_PASSWORD: ${DB_PASSWORD:-starmitra}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
