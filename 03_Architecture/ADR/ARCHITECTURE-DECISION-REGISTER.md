@@ -43,7 +43,7 @@ Engineering                   → Devin
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
-| OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
+| OD-12 | Cloud/deployment | **Managed container platform on one major cloud; no Kubernetes for MVP; provider selection open** | PROPOSED — PENDING REVIEW |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
 
 ---
@@ -1385,19 +1385,138 @@ Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-li
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-12 |
-| Decision | Cloud provider + deployment architecture for dev/testing/UAT/staging/production. |
-| Context | Needs: containerized app hosting, managed PostgreSQL (OD-03), object storage+CDN+transcode (OD-08), CI/CD, secrets, monitoring, backups/DR, scaling, cost control. FRS requires backup/recovery `[FRS §36]`. |
-| FRS References | §36 NFRs (scale, backup, observability) |
-| Options | **A. Major cloud, managed services** (AWS / GCP / Azure — compute via ECS/Cloud Run/App Service-class). **B. PaaS** (Render/Fly.io/Railway/Heroku-class). **C. VPS/self-managed** (Hetzner/DigitalOcean-class + own Postgres/media). |
-| Advantages | **A:** every needed managed primitive exists; scales with product; media/CDN/transcode ecosystem mature; enterprise-ready path; credits for startups. **B:** fastest deploys, minimal ops, predictable bills early. **C:** cheapest raw compute; full control. |
-| Disadvantages | **A:** complexity, pricing nuance (egress!), needs IaC discipline. **B:** ceilings on media scale/networking; unit economics worsen with video bandwidth; migration later is non-trivial. **C:** you own DB HA/backups/security patching — real ops burden; media pipeline DIY. |
-| StarMitra Fit | **A:** media-heavy + competition-scale + future Originals ambitions argue for real cloud; single-region MVP keeps cost sane. **B:** legitimate for a throwaway/fast alpha; risk re-platforming at first competition scale event. **C:** ops distraction a small team can't afford. |
-| Team Impact | A: needs IaC/cloud competence (Terraform + GitHub Actions). B: near-zero ops. C: highest. |
-| Cost/Complexity | A medium (optimize: managed PG, S3-class storage, CDN, container compute, free-tier credits). B low→rises with scale. C low $$$, high time. |
-| Risks | A: provider pick without pricing model → egress/bandwidth bill shock at media scale (evaluate AWS vs GCP vs Azure on *media egress + transcode* pricing, not familiarity). B: outgrow mid-competition. Any: multi-region DR deferred consciously. |
-| Devin Recommendation | **A — one major cloud, containerized services, managed DB/storage/CDN, Terraform IaC, GitHub Actions CI/CD, four environments** (dev/staging/prod + local). **Provider selection deferred:** evaluate AWS vs GCP vs Azure on media egress/transcode pricing + available startup credits before locking — that sub-decision needs Product Owner input on budget/credits. Avoid B for anything beyond alpha; avoid C entirely for MVP. |
+| Decision | Cloud platform + deployment architecture for all environments (dev/test/UAT/staging/production). |
+| Context | All prior decisions shape this: OD-01 monolith, OD-02 Spring Boot, OD-03 PostgreSQL, OD-04 Vite SPA, OD-05 RN+Expo, OD-06 auth, OD-07 REST API, OD-08 media (provider-neutral), OD-09 WS (single-instance MVP), OD-10 no distributed cache, OD-11 PG-native search. FRS requires backup/recovery + security `[§30][§36]`. **FRS names no cloud provider — provider choice is deferred pending Product Owner input.** |
+| FRS References | §5 channels, §36 NFRs (scale, availability, backup, observability), §30 audit |
+| Options | **A. Major cloud, managed services** (AWS/GCP/Azure — container platform + managed PG + object storage + CDN) · **B. PaaS** (Render/Fly.io/Railway-class) · **C. VPS/self-managed** (own Docker+PG) |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Deployment Model (conceptual topology)
+
+| Component | MVP deployment |
+|-----------|----------------|
+| Backend (modular monolith) | Container image → managed container platform (single service, horizontal replicas possible) |
+| Web frontend (Vite SPA) | Static build → CDN/object-hosted statics — no server runtime needed |
+| PostgreSQL | **Managed service** (automated backups, patching, replica option) |
+| Media | Provider-neutral object storage (OD-08) + CDN |
+| WebSocket | Same monolith process — **single instance suffices at MVP** (OD-09) |
+| Async/background | Internal job queue (Spring `@Async`/scheduler) + worker threads **inside the same deployable** — no broker |
+| Scheduled/watchdog | Scheduled jobs in monolith (media orphan reconciliation, competition close, score compute triggers) |
+
+### 2. Cloud Platform Options
+
+| Option | For | Against | Verdict |
+|--------|-----|---------|---------|
+| **A. Major cloud managed services** | Every needed primitive (container runtime, managed PG, object storage, CDN, secrets, CI/CD, monitoring); media-scale capable; startup credits; scales with product | Complexity + pricing nuance (egress) | **Recommended** — provider pick = separate sub-decision (credits/pricing) |
+| **B. PaaS (Render/Fly/Railway-class)** | Fastest deploys, minimal ops | Media-bandwidth unit economics; ceilings at competition scale; re-platforming later | Rejected beyond alpha/testing |
+| **C. VPS/self-managed** | Cheapest raw compute | Own DB HA/backups/patching/media pipeline — ops burden a small team can't afford | Rejected for MVP |
+| VM-based within A | Control | More ops than containers; unnecessary | Rejected in favor of managed containers |
+| **Kubernetes** | Orchestration power | Massive overkill for a monolith — no demonstrated multi-service scale | **Not approved — deferred to scale trigger** (§18) |
+
+### 3. Environment Model
+
+| Env | Infra | Purpose |
+|-----|-------|---------|
+| Development | Local (Docker + embedded/H2-free dev profile w/ PG) | Dev machines |
+| Test/QA | CI-ephemeral or small shared env | Automated/integration tests |
+| UAT | Small persistent managed env | Product validation `[FRS §37]` |
+| Staging | Prod-shaped minimal (same topology, small sizes) | Pre-release verification |
+| Production | Managed services, single region | Live |
+
+*Recommendation: dev+test share lightweight local/CI infra; UAT/staging/prod are real deployed envs.*
+
+### 4. Availability & Scalability — MVP
+
+- Backend: stateless container, 2 replicas for availability (not capacity); horizontal scale via platform autoscaling if needed
+- Frontend: static CDN — inherently scalable
+- PostgreSQL: managed single-primary + automated backups; **read replica only if reporting load demands** (trigger, not default)
+- Media: storage/CDN scale natively
+- WS: single backend instance at MVP — replicas for WS require sticky/fan-out *(future trigger)*
+- Failure: container auto-restart; health checks; PG managed failover *(managed-service dependent)*
+
+### 5. Database Deployment
+
+**Managed PostgreSQL** — automated backups (PITR via WAL), patching, monitoring, optional replica. Self-managed rejected (ops burden, no need). Preserves OD-03.
+
+### 6. Media (preserves OD-08)
+
+Provider-neutral object storage + pre-signed upload + async processing + CDN delivery — all already architecture-approved; provider selection stays with OD-12's open provider question.
+
+### 7. Realtime (preserves OD-09)
+
+Single-instance WS at MVP confirmed. **Multi-instance fan-out trigger** = when concurrent-connection count or availability needs force a second app instance → needs coordination adapter (separate decision, no broker approved).
+
+### 8. Cache (preserves OD-10)
+
+No distributed cache; in-process only; Redis deferred.
+
+### 9. Search (preserves OD-11)
+
+PG-native FTS; no ES/OS/Algolia; dedicated-service trigger documented.
+
+### 10. Messaging/Event Infrastructure
+
+**No broker at MVP.** Async work = in-app job queue + schedulers inside the monolith. Broker (Kafka/RabbitMQ) enters only if a future scale scenario demands durable distributed eventing — **documented trigger, not approved.**
+
+### 11. Kubernetes / Orchestration
+
+**Not justified for MVP** — one monolith container doesn't need an orchestrator. Managed container platforms (ECS Fargate/Cloud Run/App Service-class) give autoscaling + health checks + rolling deploys without K8s ops. **K8s trigger:** multiple independently-deployable services or cluster-level orchestration requirements — future decision.
+
+### 12. CI/CD Principles (not implemented)
+
+Source control (Git, feature branches → PR); build (Maven/Gradle → container image + Vite static build); automated tests in CI; artifact registry; deploy via managed-container rollout; rollback = redeploy prior image/tag; config per environment; **Flyway migrations run at deploy time** (OD-02/03); environment promotion = immutable artifacts promoted dev→staging→prod.
+
+### 13. Secrets & Configuration
+
+Environment-specific config via env vars/parameter store; secrets in managed secrets store (never in repo/code); rotation supported; per-environment secret isolation; no shared prod/non-prod credentials.
+
+### 14. Observability (preserves baseline §18)
+
+Structured JSON logs; metrics (JVM/HTTP/DB); correlation IDs across API ops (OD-07); request tracing where the platform supports it; health endpoints + deployment health checks; audit events stay **separate** from technical telemetry. **No monitoring vendor selected.**
+
+### 15. Backup & DR
+
+PG automated backups + PITR; object-store durability (11-9s class); media metadata backed via PG; restore testing as a scheduled practice; retention per product policy; **RTO/RPO targets not invented — proposed/open for product input** (single-region MVP; multi-region deferred).
+
+### 16. Security/Networking
+
+TLS everywhere (terminated at LB/CDN); private subnet for DB (no public exposure); backend behind load balancer only; storage access via signed URLs; least-privilege service roles; per-env isolation; admin access via audited, restricted paths.
+
+### 17. Cost & Operational Complexity
+
+| Option | MVP suitability | Ops complexity | Scale | Reliability | Cost |
+|--------|-----------------|----------------|-------|-------------|------|
+| A. Major cloud managed | Strong | Medium | High | High | Medium (optimize via credits) |
+| B. PaaS | Good early | Low | Medium | Medium | Low→rising |
+| C. VPS | Weak (ops burden) | High | Low | Medium | Low $, high effort |
+
+### 18. Future Scaling Triggers (each = separate decision)
+
+| Technology | Trigger condition |
+|------------|-------------------|
+| Kubernetes | Multiple independently-deployable services; orchestration complexity justifies |
+| Redis/Valkey | OD-10 triggers: multi-instance rate-limiting/WS fan-out, measured hot-read load, shared-state feature |
+| Kafka/RabbitMQ | Durable distributed eventing requirement at scale |
+| Elasticsearch/OpenSearch | OD-11 triggers: P1 advanced search, measured latency, facet/autocomplete need |
+| Multi-instance WS fan-out | Concurrent connections / availability force second instance |
+| Read replicas | Measured reporting/read contention on primary |
+| DB partitioning | Table-volume growth (`Vote`/`AuditLog`/`Notification`) |
+| Multi-region | Latency/DR requirement beyond single-region tolerance |
+| CDN expansion | Delivery latency/coverage gaps |
+| Dedicated worker infra | Media-processing load exceeds in-app worker capacity |
+
+### Devin Recommendation
+
+**Option A — one major cloud, managed services:** containerized monolith on a managed container platform + managed PostgreSQL + object storage + CDN + managed secrets/monitoring; Terraform IaC + GitHub Actions CI/CD (tooling detail); 5-environment model; single-region MVP. **Provider (AWS/GCP/Azure) left open pending Product Owner input on credits/pricing — this OD approves the deployment *architecture*, not the vendor.**
+
+### Open Questions (Product Owner)
+
+1. **Cloud provider choice** — existing commitments/credits/pricing preference (Q1)
+2. RTO/RPO expectations — FRS silent; product input needed
+3. Budget ceiling / cost posture for MVP infra
+4. Single vs dual-region appetite (deferred anyway — but posture matters for provider choice)
+5. UAT/staging environment persistence cadence
 
 ## OD-13 — Analytics
 

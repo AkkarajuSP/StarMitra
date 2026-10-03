@@ -257,7 +257,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 | OD-09 | Real-time — **accepted**, ADR-009 formalization pending | — |
 | OD-10 | Cache — **accepted**, ADR-010 formalization pending | — |
 | OD-11 | Search — **accepted in principle**, ADR-011 formalization pending | — |
-| OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
+| OD-12 | Cloud/deployment — detailed review completed; recommendation = managed container platform + managed PG + object storage + CDN on one major cloud (no K8s for MVP); **provider choice open** pending Product Owner input; formal decision pending | Deployment design |
 | OD-13 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
 
 Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-12. *(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
