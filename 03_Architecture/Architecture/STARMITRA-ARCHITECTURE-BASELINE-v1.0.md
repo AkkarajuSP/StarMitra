@@ -238,6 +238,7 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | OD-06 | Authentication/session | **First-party Spring Security** — OTP primary, JWT access + opaque persisted refresh (rotation + reuse detection + revocation); web=httpOnly cookies+CSRF, mobile=bearer+secure enclave; unified mechanism; social login/IdP deferred; no Redis implied |
 | OD-07 | API architecture | **REST + OpenAPI** — `/api/v1/{domain}` module-owned namespaces; DTO boundary; RFC 9457 errors; cursor+offset pagination; constraint-first idempotency; provider-agnostic media contracts; REST=commands, WS=events |
 | OD-08 | Media architecture | **Object storage + direct-to-storage upload + async processing + CDN** — provider-neutral interfaces; PG=metadata only; authz-before-signed-URL; no broker/CDN/provider selected (OD-12) |
+| OD-09 | Real-time | **WebSocket in monolith, isolated D6** — PG persistence-first, at-least-once + idempotent dedup, REST recovery, per-event authz; protocol detail open (spike); no broker; single-instance MVP |
 
 ### Future Infrastructure Decisions — NOT approved
 
@@ -251,7 +252,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 |---|----------|--------|
 | OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
 | OD-08 | Media architecture — **accepted**, ADR-008 formalization pending | — |
-| OD-09 | Real-time — detailed review completed; recommendation = WebSocket inside monolith (isolated D6, PG persistence, no broker); protocol detail open; formal decision pending | D6 implementation |
+| OD-09 | Real-time — **accepted**, ADR-009 formalization pending | — |
 | OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |
 | OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
 | OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |

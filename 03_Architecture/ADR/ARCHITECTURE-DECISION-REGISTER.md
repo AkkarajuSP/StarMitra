@@ -40,7 +40,7 @@ Engineering                   → Devin
 | OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated module); protocol detail open; no broker** | PROPOSED — PENDING REVIEW |
+| OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
@@ -1005,8 +1005,34 @@ Media module isolated behind storage/processing adapters — extraction = lift m
 | Context | FRS §12 requires: 1:1 + group/project conversations, text + media attachments, timestamps, delivery + read status, project-linked conversations, notifications integration, report/block. **Future (out of MVP):** live video/audio, calls, live streaming, realtime collaborative editing `[FRS §4.2][§35]`. |
 | FRS References | §12 Connect, §18 live vote counts (optional), §25 notifications, §35 priorities |
 | Options | **A. WebSocket in the Spring Boot backend (isolated module)** · **B. Managed realtime platform (Pusher/Ably/Stream Chat-class)** · **C. SSE/long-polling only** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** WebSocket in the Spring Boot monolith is the approved realtime architecture. `ADR-009` will formalize after the OD sequence. **Binding guardrails:**
+
+1. WebSocket is the approved realtime transport capability.
+2. Realtime messaging remains inside the Spring Boot modular monolith for MVP.
+3. StarMitra Connect remains an isolated messaging module/domain.
+4. PostgreSQL is the durable source of message state.
+5. Message persistence occurs before realtime fan-out.
+6. At-least-once delivery semantics with idempotent processing.
+7. Exactly-once delivery is not claimed.
+8. Server message IDs + clientMessageId support deduplication.
+9. Per-conversation ordering where required.
+10. REST handles commands/history/recovery; WebSocket handles realtime events.
+11. Offline/reconnection recovery uses durable message state and REST recovery.
+12. WebSocket authentication follows OD-06.
+13. Per-event authorization and conversation membership checks are required.
+14. Token/session revocation must be honored.
+15. Talent skills never grant messaging permissions.
+16. Media attachments use OD-08; binaries do not travel through WebSocket.
+17. Typing/presence are not mandatory MVP capabilities.
+18. Single-instance realtime is sufficient for MVP.
+19. Multi-instance fan-out requires a separate architecture decision.
+20. Redis/Kafka/RabbitMQ are not approved by OD-09.
+21. STOMP/native WebSocket/Socket.IO protocol selection remains open pending an implementation spike.
+22. Live video/audio/calls/streaming remain outside MVP.
+23. Connect remains isolated for potential future extraction.
 
 ### 1. Realtime Scope
 
