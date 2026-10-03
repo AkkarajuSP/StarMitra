@@ -42,7 +42,7 @@ Engineering                   → Devin
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters) for MVP; dedicated engine deferred w/ triggers** | PROPOSED — PENDING REVIEW |
+| OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
 
@@ -1252,8 +1252,21 @@ Each trigger is a separate decision — Redis is **not** approved by this OD.
 | Context | `[FRS §11]` requires talent search by name/skill, feed/discovery, "advanced search by skills/categories" as P1 `[FRS §35]`; genre/category popularity in reports `[§29]`. Elasticsearch/OpenSearch NOT pre-approved. |
 | FRS References | §11 discovery/feed/search, §35 P1 advanced search, §29 analytics |
 | Options | **A. PostgreSQL-native search** (FTS + trigram + relational filters) · **B. Dedicated engine** (Elasticsearch/OpenSearch/Meilisearch-class) · **C. Managed search service** (Algolia-class) |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted in principle):** PostgreSQL-native search for MVP. `ADR-011` will formalize after the OD sequence. **Binding guardrails:**
+
+1. PostgreSQL remains authoritative.
+2. PostgreSQL FTS (`tsvector`/`tsquery` + GIN) and `pg_trgm` are used only where justified.
+3. Search must remain distinct from discovery/feed/recommendation.
+4. Search must enforce authorization/privacy/moderation/visibility rules.
+5. TalentSkill and ProjectContributionRole must never be treated as authorization mechanisms.
+6. Search relevance must be **deterministic and documented** — no undocumented ranking formula.
+7. Advanced autocomplete, faceting, semantic/AI search and ML ranking remain deferred unless explicitly required by product scope.
+8. Elasticsearch, OpenSearch, Algolia, Redis, Kafka, RabbitMQ and a dedicated search service remain **unapproved** for MVP.
+9. Explicit future migration triggers for a dedicated search engine are documented (§4).
+10. Conceptual searchable entities/fields are documented (§4a) — no implementation.
 
 ### 1. Search Requirements — FRS vs Inference
 
@@ -1303,6 +1316,19 @@ FRS-supported core = **filter-browse + name/skill lookups**. Everything beyond t
 - **Migration triggers → dedicated engine:** (i) P1 "advanced search" requirements land `[FRS §35]`, (ii) measured query latency/index-maintenance cost exceeds PG comfort, (iii) autocomplete/faceted discovery become product priorities
 
 **"PostgreSQL first" ≠ "PostgreSQL forever"** — search is behind a query abstraction (§12).
+
+### 4a. Conceptual Searchable Entities/Fields — documented, not implemented
+
+| Entity | Searchable fields (conceptual) | Indexed/filters |
+|--------|-------------------------------|-----------------|
+| Talent/User | name, bio | skills, status, visibility |
+| TalentSkill | name | — |
+| Competition | title, description | category/skill, status, dates |
+| Submission/Media | title, description, content type | competition, category, visibility, moderation status |
+| Project/Creative Room | title, description | type, member scope |
+| Feed content | title/caption text | skill, content type, recency |
+
+Relevance is **deterministic and documented**: `ts_rank` (FTS) → recency → engagement counts; fixed ordering, no hidden formula.
 
 ### 5. Search vs Discovery Feed
 

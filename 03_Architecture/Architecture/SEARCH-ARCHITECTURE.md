@@ -1,6 +1,6 @@
 # StarMitra — Search & Discovery Architecture
 
-**Parent:** [Architecture Baseline v1.0](STARMITRA-ARCHITECTURE-BASELINE-v1.0.md) | **Status:** Draft for review | **Decision status:** under review as **OD-11** in the [Decision Register](../ADR/ARCHITECTURE-DECISION-REGISTER.md)
+**Parent:** [Architecture Baseline v1.0](STARMITRA-ARCHITECTURE-BASELINE-v1.0.md) | **Status:** Accepted in principle | **Decision status:** **OD-11 ACCEPTED IN PRINCIPLE** — ADR-011 formalization pending ([Decision Register](../ADR/ARCHITECTURE-DECISION-REGISTER.md))
 
 ## 1. Scope — FRS vs Inference
 
@@ -22,6 +22,19 @@ Feed is a browse surface driven by domain read-model queries/projections in D5 �
 ## 4. Consistency & Privacy
 
 Immediate consistency (same transaction/DB). Every search carries authz scoping: private profiles/media excluded, moderated/removed content filtered, room-internal content invisible to non-members, blocked users' content suppressed. **Search never widens visibility.**
+
+## 4a. Conceptual Searchable Entities/Fields — documented, not implemented
+
+| Entity | Searchable fields | Filters |
+|--------|-------------------|---------|
+| Talent/User | name, bio | skills, status, visibility |
+| TalentSkill | name | — |
+| Competition | title, description | category/skill, status, dates |
+| Submission/Media | title, description, content type | competition, category, visibility, moderation status |
+| Project/Creative Room | title, description | type, member scope |
+| Feed content | title/caption | skill, content type, recency |
+
+**Deterministic relevance (documented):** `ts_rank` → recency → engagement counts. Fixed ordering — no undocumented ranking formula. `[BR-2]` preserved: TalentSkill/ProjectContributionRole are searchable *data*, never authorization.
 
 ## 5. Limitations (stated honestly)
 
