@@ -26,24 +26,38 @@ Every statement in this baseline carries one of:
 
 ## 2. Logo
 
-### 2.1 Asset status
+### 2.1 Asset status — OFFICIAL / VERIFIED
 
-Two image renders were supplied and appear visually identical → **treated as the same primary logo** (no separate variants created).
+Supplied source artwork, stored unmodified in `02_Product-Design/Brand/Logo/`:
+
+| File | Variant | Format | Dimensions | Background |
+|------|---------|--------|------------|------------|
+| `StarMitra-Primary-Logo.png` | Full lockup — emblem + "StarMitra" wordmark + "passion to perform" tagline | PNG | 1781×1750 | Transparent |
+| `StarMitra-Brand-Mark.png` | Emblem/brand mark only | PNG | 1686×1258 | Transparent |
 
 ```text
-Primary Logo:             AVAILABLE (render; source binary pending drop-in to 02_Product-Design/Brand/Logo/)
+Primary Logo:             AVAILABLE (StarMitra-Primary-Logo.png)
+Brand Mark:               AVAILABLE (StarMitra-Brand-Mark.png)
 Dark/Reversed Logo:       NOT PROVIDED
-Emblem/App Mark:          NOT PROVIDED
+White Logo:               NOT PROVIDED
 Tagline-free Lockup:      NOT PROVIDED
+Monochrome Logo:          NOT PROVIDED
 Favicon:                  NOT PROVIDED
+App Icon:                 NOT PROVIDED
 Source Vector (SVG/EPS):  NOT PROVIDED
 ```
 
-### 2.2 Composition (observed — PROVISIONAL)
+### 2.2 Intended usage (initial — refinable during UI design)
 
-- **Emblem:** navy circular field, white curved swoosh, white-outlined gold five-point star, light-lavender human figure reaching upward, arc of small gold stars — aspiration, performance, achievement.
-- **Wordmark:** "Star" violet, "Mitra" near-black ink, bold rounded geometric sans.
-- **Tagline:** lowercase "passion to perform," coral, light letter-spaced.
+- **Brand Mark** (`StarMitra-Brand-Mark.png`): app-icon direction, compact navigation, small-space branding, social/profile contexts. *Do not create app icon derivatives yet.*
+- **Primary Logo** (`StarMitra-Primary-Logo.png`): website, marketing, login/registration, public landing, official documents, primary brand presence.
+
+### 2.3 Composition (verified — OFFICIAL / VERIFIED)
+
+- **Emblem:** navy `#022179` circular field, lavender `#E9E5FF` curved swoosh (renders as "white"), gold `#F5B942` five-point star with lavender outline, lavender performer figure reaching upward with deep-violet `#5B3FD3` shading, arc of small gold stars — aspiration, performance, achievement.
+- **Wordmark:** "Star" purple `#7C3AED`, "Mitra" ink `#101828`, bold rounded geometric sans.
+- **Tagline:** lowercase "passion to perform," coral `#F05A5E`, light letter-spaced.
+- **Background:** transparent in both PNGs — artwork sits cleanly on light surfaces; dark surfaces need a light container or a (not-yet-provided) reversed variant.
 
 ### 2.3 Usage rules — OFFICIAL / VERIFIED (owner directives)
 
@@ -52,12 +66,13 @@ Source Vector (SVG/EPS):  NOT PROVIDED
 - The two supplied renders = one primary logo; do not create variants from filenames.
 - Missing variants are requested, never fabricated locally.
 
-### 2.4 Usage rules — PROVISIONAL (provisional pending source artwork)
+### 2.4 Usage rules — PROVISIONAL
 
 - Clear space ≈ emblem star height on all sides.
-- Full lockup minimum width ≈ 120px; emblem-only minimum ≈ 24–28px once that variant exists.
-- Dark surfaces: place lockup inside a white/light rounded container OR request a reversed variant — do not recolor locally (the supplied lockup's ink wordmark is designed for light backgrounds).
+- Full lockup minimum width ≈ 120px; brand mark minimum ≈ 24–28px.
+- Dark surfaces: transparent PNGs sit on light backgrounds; for navy/dark surfaces place in a light rounded container OR request a reversed variant — do not recolor locally.
 - Incorrect usage: no recoloring, drop shadows, outlines, rotation, stretching, busy-image placement without container/scrim, re-coloring "Star"/"Mitra" independently, low-contrast placement.
+- Do not recreate the logo in HTML/CSS/SVG — the supplied PNGs are the brand source; if SVG/vector is supplied later it becomes the preferred production asset.
 
 ### 2.5 Missing variants — MISSING
 
@@ -65,18 +80,18 @@ Request from brand; do not fabricate:
 
 | Needed variant | Reason |
 |----------------|--------|
-| Source vector (SVG/EPS/PDF) | Canonical master for all derivatives + color verification |
-| Emblem-only mark | App icon, favicon, avatar, compact headers |
+| Source vector (SVG/EPS/PDF) | Canonical master + preferred production asset |
 | Reversed/light lockup | Navy/dark surfaces, splash screens |
-| Tagline-free lockup | Small sizes where tagline is illegible |
-| Favicon/app-icon exports | Platform assets |
+| Monochrome variant | Single-color print/contexts |
+| Tagline-free lockup | Small widths where tagline is illegible |
+| Favicon/app-icon exports | Platform assets (derive from Brand Mark when approved) |
 
 ## 3. Color System
 
 Canonical doc: [`../Colors/STARMITRA-COLOR-SYSTEM.md`](../Colors/STARMITRA-COLOR-SYSTEM.md)
 
-- Brand palette (Navy, Gold, Star Yellow, Violet, Lavender, Ink, Coral, White): **PROVISIONAL — PENDING SOURCE ARTWORK VERIFICATION**
-- Surface tint, muted text, border, success/warning/error/info: **PROPOSED UI**
+- Primary palette — **OFFICIAL / VERIFIED** via pixel analysis: Navy `#022179`, Ink `#101828`, Lavender `#E9E5FF`, Purple `#7C3AED`, Gold `#F5B942`, Coral `#F05A5E`; secondary Deep Violet `#5B3FD3`.
+- `ui-white #FFFFFF` (artwork uses lavender/transparent, not pure white), surface tint, muted text, border, success/warning/error/info: **PROPOSED UI**
 
 ## 4. Typography
 
@@ -116,7 +131,7 @@ UI must make the multi-talent model legible **without exposing technical terms**
 
 ## 8. Accessibility Baseline — PROPOSED UI
 
-- WCAG AA: 4.5:1 body text, 3:1 large text/UI. *(Provisional palette: `brand-violet`, `brand-coral`, `brand-gold` on white likely fail small-text contrast — restrict to large/bold/decorative use until verified.)*
+- WCAG AA: 4.5:1 body text, 3:1 large text/UI. *(`brand-coral` and `brand-gold` on white fail AA for small text — decorative/large-text only; `brand-purple` ~5.9:1 borderline — verify before small-text use.)*
 - Visible focus states; meaning never carried by color alone; icon+text for status.
 - Touch targets ≥ 44×44px; screen-reader labels on icon-only controls; error states = text + icon.
 

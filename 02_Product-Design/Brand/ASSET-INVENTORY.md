@@ -1,40 +1,50 @@
 # StarMitra — Brand Asset Inventory
 
-**Parent:** [Brand Baseline](Brand-Guidelines/STARMITRA-BRAND-BASELINE-v1.0.md) | **Status:** Draft
+**Parent:** [Brand Baseline](Brand-Guidelines/STARMITRA-BRAND-BASELINE-v1.0.md) | **Status:** Updated 2026-10-03
 
-## Supplied assets
+## Supplied assets — registered
 
-| Filename | Format | Dimensions | Variant | Background | Intended Usage | Source | Status |
-|----------|--------|------------|---------|------------|----------------|--------|--------|
-| *(pending file drop)* | Raster render (shared in-conversation ×2 — identical) | not recorded | Primary full lockup (emblem + wordmark + tagline) | Light | Primary brand identity — splash/landing headers, marketing, about screens | Owner-provided | **RECEIVED AS RENDER — SOURCE BINARY PENDING** |
+| Filename | Format | Dimensions | Variant | Background | Intended Usage | Source | Verification Status |
+|----------|--------|------------|---------|------------|----------------|--------|---------------------|
+| `StarMitra-Primary-Logo.png` | PNG | 1781×1750 | Primary full lockup (emblem + wordmark + tagline) | Transparent | Website, marketing, login/registration, public landing, official docs, primary brand presence | Owner-supplied (`SMlogoMain.png`) | **OFFICIAL / VERIFIED** — pixel-analyzed; palette extracted |
+| `StarMitra-Brand-Mark.png` | PNG | 1686×1258 | Brand mark / emblem only | Transparent | App-icon direction, compact nav, small-space branding, social/profile | Owner-supplied (`Brand.png`) | **OFFICIAL / VERIFIED** — pixel-analyzed; palette extracted |
 
-> The two supplied renders appear visually identical and are treated as the same primary logo unless the owner identifies one as a different variant. No separate variants will be created from filenames alone.
+Both files stored unmodified in `Logo/` (originals remain at their source location).
 
 ## Variant availability
 
 ```text
-Primary Logo:             AVAILABLE (render; source binary pending)
+Primary Logo:             AVAILABLE (StarMitra-Primary-Logo.png)
+Brand Mark:               AVAILABLE (StarMitra-Brand-Mark.png)
 Dark/Reversed Logo:       NOT PROVIDED
-Emblem/App Mark:          NOT PROVIDED
+White Logo:               NOT PROVIDED
 Tagline-free Lockup:      NOT PROVIDED
+Monochrome Logo:          NOT PROVIDED
 Favicon:                  NOT PROVIDED
+App Icon:                 NOT PROVIDED
 Source Vector (SVG/EPS):  NOT PROVIDED
 ```
+
+## Observed but NOT registered
+
+| File | Location | Observation | Status |
+|------|----------|-------------|--------|
+| `SMLogo.png` (1797×1681) | `OneDrive\Desktop\New folder\` | Alternate lockup: pink `#EC4899` tagline and simplified emblem without star trail | **NOT REGISTERED** — not supplied as a brand asset; register on owner confirmation |
 
 ## Requested / needed assets — MISSING
 
 | Asset | Type | Purpose | Status |
 |-------|------|---------|--------|
-| Source vector logo | SVG/EPS/PDF | Canonical master; enables HEX verification | Requested |
-| Emblem-only mark | SVG/PNG | App icon, favicon, avatars, compact headers | Requested |
+| Source vector logo | SVG/EPS/PDF | Canonical master; preferred production asset | Requested |
 | Reversed/light lockup | SVG/PNG | Dark/navy surfaces | Requested |
-| Tagline-free lockup | SVG/PNG | Small widths where tagline is illegible | Requested |
-| Favicon/app-icon exports | PNG/ICO | Platform assets | Requested |
+| Monochrome variant | SVG/PNG | Single-color contexts | Requested |
+| Tagline-free lockup | SVG/PNG | Small widths where tagline illegible | Requested |
+| Favicon/app-icon exports | PNG/ICO | Platform assets — derive from Brand Mark when approved | Requested |
 | UI icon set | SVG | Product iconography | Not supplied — direction TBD in design phase |
 
 ## Rules
 
-- One canonical file per variant — no unnecessary duplicates; originals preserved unmodified; vector preferred where available.
-- When binaries arrive, each is recorded above with: filename, format, dimensions, variant, background, intended usage, source, status — then color verification proceeds.
-- Official assets live only under `02_Product-Design/Brand/`; frontends reference/export from a single source once a build pipeline exists.
+- One canonical file per variant — no duplicates; originals preserved unmodified; vector preferred when available.
+- Official assets live only under `02_Product-Design/Brand/`; frontends export from a single source once a build pipeline exists.
 - Raster assets never upscaled beyond source resolution.
+- Do not recreate/redraw the logo (HTML/CSS/SVG) — supplied artwork is the brand source.
