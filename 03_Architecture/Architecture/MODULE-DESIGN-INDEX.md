@@ -24,6 +24,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 16 | Leaderboards | [MODULE-LEADERBOARDS.md](MODULE-LEADERBOARDS.md) | Designed |
 | 17 | Notifications | [MODULE-NOTIFICATIONS.md](MODULE-NOTIFICATIONS.md) | Designed |
 | 18 | Moderation | [MODULE-MODERATION.md](MODULE-MODERATION.md) | Designed |
-| 19 | Analytics / Reporting | — | Pending |
+| 19 | Admin Portal | [MODULE-ADMIN-PORTAL.md](MODULE-ADMIN-PORTAL.md) | Designed |
+| 20 | Judge Portal | — | Pending |
 
 > Module numbering is design-sequence only — domain ownership per the baseline's 15-domain map. Specs are design-only; no implementation.
