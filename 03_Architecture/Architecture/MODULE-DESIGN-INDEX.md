@@ -8,7 +8,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 |---|--------|------|--------|
 | 01 | Authentication & Identity | [MODULE-AUTHENTICATION-IDENTITY.md](MODULE-AUTHENTICATION-IDENTITY.md) | Designed |
 | 02 | User Profile | [MODULE-USER-PROFILE.md](MODULE-USER-PROFILE.md) | Designed |
-| 03 | Talent Skills | — | Pending |
+| 03 | Talent Skills | [MODULE-TALENT-SKILLS.md](MODULE-TALENT-SKILLS.md) | Designed |
 | 04 | Media Management | — | Pending |
 | 05 | Discovery/Search/Feed | — | Pending |
 | 06 | StarMitra Connect (Messaging) | — | Pending |
