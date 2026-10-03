@@ -32,8 +32,8 @@ Engineering                   → Devin
 |----|-------|----------------|--------|
 | OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
 | OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-03 | Primary database | **PostgreSQL** — detailed review completed; already inside OD-02 accepted stack | PROPOSED — PENDING REVIEW (recommendation: accept) |
-| OD-04 | Web frontend | React + Next.js (one framework, all four surfaces) | PROPOSED — PENDING REVIEW |
+| OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | PROPOSED — PENDING REVIEW |
 | OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
 | OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
 | OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
@@ -170,8 +170,18 @@ Service Mesh
 | Context | FRS §31 logical model is inherently relational (M:N spine: User↔TalentSkill, User↔SystemRole, Project↔Member↔ContributionRole); strict consistency for votes/evaluations/scores `[FRS §18–24][§30][§36]`; config-driven entities (rubric versions, round configs) `[FRS §15][§20]`; admin reporting `[FRS §29]`; audit + backup/recovery `[FRS §30][§36]`. **Note:** PostgreSQL already sits inside the OD-02 accepted backend baseline — this OD formally evaluates/approves it as the primary datastore. |
 | FRS References | §10 content lifecycle, §15–24 competition pipeline, §30 audit, §31 data model, §36 NFRs |
 | Options | **A. PostgreSQL** · **B. MySQL 8** · **C. MariaDB** · **D. SQL Server** · **E. Distributed SQL (CockroachDB/Yugabyte)** · **F. Non-relational (MongoDB-class) — evaluated and rejected for the transactional core** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW (recommendation: accept) |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** PostgreSQL is StarMitra's primary transactional relational datastore. `ADR-003` will formalize after the OD sequence. **Binding guardrails:**
+
+1. Core business entities remain **relational and strongly typed**.
+2. **JSONB selectively** — only for genuinely configuration-driven/flexible structures (rubric criteria, round configs, eligibility rules); never as a substitute for typed core entities.
+3. Prefer **PostgreSQL constraints and transactions** for invariant enforcement (FK, unique, check, Σ weights = 100% `[BR-11]`, immutability rules).
+4. **Row-level locking** where contention/concurrency requires it.
+5. **Advisory locks are NOT a blanket requirement** — only where a specific concurrency design justifies them.
+6. **Partitioning, replicas, CDC, multi-region** and other advanced capabilities remain **future decisions** unless separately approved.
+7. This decision does **NOT** approve Redis, Kafka, RabbitMQ, Elasticsearch/OpenSearch, Kubernetes, or Service Mesh.
 
 ### 1. Domain Model Fit
 
@@ -295,19 +305,115 @@ MVCC + row-level locks + advisory locks cover every FRS concurrency case without
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-04 |
-| Decision | Web technology for Public Web + Creator + Admin Portal + Judge Portal `[FRS §5][§27][§28]`. |
-| Context | Public discovery needs SEO/crawlability `[FRS §11]`; admin/judge portals are authenticated SPA-like apps; brand/design system must be implementable (verified palette, Poppins/Inter proposed); accessibility required. |
-| FRS References | §5 channels, §11 discovery, §27–28 portals, §34 screens |
-| Options | **A. React + Next.js (one framework, SSR public + app router portals).** **B. React SPA (Vite) + static pre-render for public pages.** **C. Vue + Nuxt.** **D. Angular.** **E. Svelte/SvelteKit.** |
-| Advantages | **A:** one framework serves all four surfaces; SSR/SSG where SEO matters, client rendering where not; largest ecosystem/hiring; RSC/route handlers flexible; design-system friendly (Tailwind/CSS-in-JS/component libs). **B:** simplest mental model; cheap static hosting. **C:** excellent DX, similar capability to A. **D:** batteries-included, strong for enterprise forms-heavy admin. **E:** smallest bundles, fast. |
-| Disadvantages | **A:** complexity budget (caching semantics, RSC learning curve); Vercel-centric docs (self-hostable). **B:** SEO needs extra machinery (prerender/SSR service); two rendering models anyway. **C:** smaller hiring pool than React. **D:** heavier for public consumer surfaces; opinionated = slower customization. **E:** smallest ecosystem/talent; enterprise libraries thinner. |
-| StarMitra Fit | **A:** public discovery + 2 internal portals + creator surface = one codebase, shared design system, per-surface rendering mode — strongest fit. **C** credible if team is Vue-fluent. **D** overkill for consumer side, plausible for portal-only. |
-| Team Impact | A/C: one framework, one design system → shared components across surfaces (judge portal reuses form system for dynamic rubric UI §20). B: split rendering approaches. |
-| Cost/Complexity | A moderate (one framework, some platform learning); B low but hidden SEO cost; D higher ramp; E lowest runtime cost, higher ecosystem risk. |
-| Risks | A: over-engineering public site (mitigate: static-first pages). Team unfamiliarity → ramp time. |
-| Devin Recommendation | **A — React + Next.js**, deployed as: public site (SSR/SSG), creator app + admin + judge (auth'd app surfaces, possibly one codebase with route groups or three thin apps sharing a design-system package). Final packaging (one app vs multiple) is an implementation detail — the framework decision is the same. |
+| Decision | Web technology for Public Web + Creator + Audience + Admin Portal + Judge Portal `[FRS §5][§27][§28]`. |
+| Context | Four web surfaces with different characters: public discovery (`[FRS §11]`, SEO-relevant — *inference, not FRS requirement*), authenticated creator/audience app, two internal portals (admin `[§27]`, judge `[§28]`). Brand baseline exists (verified palette, PROPOSED Poppins/Inter); accessibility + mobile-first are FRS NFRs `[§36]`. Backend is Java/Spring Boot REST/OpenAPI + WebSocket (OD-02). |
+| FRS References | §5 channels, §9 profile, §10 media, §11 discovery, §12 Connect, §13 rooms, §15–24 competition flows, §26 moderation, §27–28 portals, §34 screens, §36 NFRs |
+| Options | **A. React + TypeScript + Vite (SPA, all surfaces)** · **B. React + TypeScript + Next.js (SSR-capable, all surfaces)** · **C. Angular** · **D. Vue/Nuxt** · **E. SvelteKit** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1–2. Core Technology Evaluation — React + TypeScript + Vite
+
+| Aspect | Assessment |
+|--------|------------|
+| React + TypeScript | Largest ecosystem/hiring pool; component model fits design-system cards/forms; TS safety across the codebase; aligns with future React Native evaluation (OD-05) without implying it |
+| Vite | Fast dev server + build; standard tooling for SPA React; no server runtime required — deploy as static assets behind CDN or Spring-hosted statics, consistent with monolith deployment |
+| SSR capability | **Not provided by Vite** — the material trade-off vs Next.js; see SEO analysis below |
+
+### 3. Responsive / Mobile-First `[FRS §36]`
+
+FRS requires responsive, mobile-first UX. A React SPA delivers this via responsive CSS + component design; mobile web is also the fallback for users without the app. No framework-level constraint — satisfied equally by A/B.
+
+### 4–5. Surface Coverage
+
+| Surface | FRS scope | SPA fit |
+|---------|-----------|---------|
+| Public (landing, discovery, talent profiles, portfolio/media, competitions, public submissions/results) `[§5][§34]` | Crawlability desirable — *inference* | Works, but SEO needs mitigation (below) |
+| Creator (home, profile, skills, portfolio, upload, competitions, submissions, results) `[§34]` | Auth'd app | Excellent |
+| Audience (browse, vote, engage) `[§6]` | Auth'd app | Excellent |
+| Judge (dashboard, assigned entries, evaluation form, history) `[§28]` | Auth'd app | Excellent — deterministic SPA |
+| Admin (users, skills, competitions, rounds, votes, judges, rubrics, moderation, reports, audit, config) `[§27]` | Auth'd app | Excellent — forms/tables heavy |
+
+**Packaging recommendation:** one SPA codebase with route-group surfaces — `/` public, `/app` creator+audience, `/judge`, `/admin` — role-gated routing over the shared design system. Splitting into separate apps is a build-time detail, not an OD.
+
+### 6. Admin & Judge Portals `[§27][§28]`
+
+Both are authenticated, data-dense, form/table-heavy — the ideal SPA use case. No SEO need; deterministic rendering; role-scoped API surfaces enforced backend-side `[FRS §19]`.
+
+### 7. State Management
+
+- **Server state:** recommend **TanStack Query**-class server-state library — caching, retries, invalidation for feeds/votes/leaderboards. `RECOMMENDATION, not approval.`
+- **Client/global state:** keep minimal — React state + context; **Redux/Zustand NOT required at MVP** — introduce only if a concrete cross-surface state need emerges (separate decision).
+- Forms state: form library local to forms (§10).
+
+### 8. API Integration (Spring Boot REST/OpenAPI)
+
+Backend ships OpenAPI contracts (OD-02). Recommend **codegen'd typed client** (openapi-typescript / Orval-class) — types generated identically regardless of frontend choice; auth interceptor attaches token; consistent error model per API-ARCHITECTURE.
+
+### 9. WebSocket Integration (Connect)
+
+Client wraps WS in a dedicated `realtime` module exposing typed events to D6 surfaces — preserving the OD-02 isolation decision (messaging isolated, extractable later). Transport detail depends on backend WS mechanism (STOMP-over-WS is Spring's idiom vs native WS) — **open sub-detail pending backend realtime design**, not a blocker for the framework decision.
+
+### 10. Form-Heavy Workflows
+
+Rubric builder (dynamic criteria, weights, ordering `[FRS §20]`), competition creation (round configs `[§15]`), profile/skills, submissions, judge evaluation forms — recommend **React Hook Form + schema validation (Zod-class)** `RECOMMENDATION`: dynamic field arrays for criteria, per-criterion scoring UIs, validation shared with backend error model. This is the heaviest form workload in the product — library choice matters but is an implementation decision, flagged not approved.
+
+### 11. Media Upload & Playback `[§10][§16]`
+
+- **Upload:** backend issues pre-signed URL (MEDIA-ARCHITECTURE) → browser PUTs directly to object storage → progress UI; backend never proxies binaries `[FRS §36]`.
+- **Playback:** `<video>`/`<audio>` + HLS where transcoded renditions exist; responsive images via variant URLs; document preview strategy open (OD-07 dependent).
+- **Secure access:** signed URLs for non-public media; visibility enforced server-side.
+
+### 12. Accessibility & Responsive Design
+
+WCAG AA target (brand baseline §8): semantic HTML, focus management for modals/routes, `eslint-plugin-jsx-a11y`, keyboard navigation, touch targets ≥44px, no color-only meaning — enforced by component library conventions + lint + a11y audits in CI.
+
+### 13. Performance & Code Splitting
+
+Route-level code splitting per surface (admin bundle never ships to audience); lazy media components; bundle budgets in CI; CDN-cached static assets; image/video lazy-loading. React 18 concurrent features optional.
+
+### 14. Security
+
+| Concern | Approach |
+|---------|----------|
+| Auth tokens | Session strategy tied to OD-06: recommend **httpOnly secure cookies** (XSS-resistant) OR memory-held access token + refresh rotation — *sub-decision, not resolved here* |
+| Authorization | Server-side enforcement only `[BR-02]`; UI hides/disables but never grants |
+| XSS | React escaping + sanitization for any rich text; strict CSP |
+| CSRF | If cookie auth → SameSite=Strict/Lax + CSRF token for mutations |
+| Secure media | Signed URLs, no client-side trust of visibility |
+
+### 15. Testing Strategy
+
+Vitest + Testing Library (unit/component), MSW (API mocks aligned to OpenAPI), Playwright (E2E critical flows — voting, evaluation submit, upload), contract tests against OpenAPI, visual/a11y checks in CI.
+
+### 16. Maintainability & Mobile Alignment
+
+Component-driven design system implementing the brand tokens; domain-mirrored feature folders matching D1–D15 modules; shared TS types from OpenAPI — the same types a future React Native app (OD-05) would consume (types share, not components — honest limit).
+
+### 17. Alternatives — Explicit Comparison
+
+| Option | For | Against | StarMitra verdict |
+|--------|-----|---------|-------------------|
+| **A. React+TS+Vite SPA** | Simplest ops (static deploy); all four surfaces fit; huge ecosystem; matches Spring static/CDN serving | No SSR/SEO out of box; needs mitigation for public discovery | **Recommended** |
+| **B. React+TS+Next.js** | SSR/SSG for public discovery; same React knowledge | Server runtime required for portals that don't need it; complexity (RSC, caching semantics); overkill for 3 of 4 surfaces | Strong alternative **if public SEO is confirmed critical at MVP** — see open question |
+| **C. Angular** | Batteries-included for forms/admin | Heavier for consumer surfaces; smaller pool vs React; splits from RN-aligned ecosystem | Rejected — overkill |
+| **D. Vue/Nuxt** | Capable, good DX | Smaller hiring/ecosystem than React | Credible but no advantage |
+| **E. SvelteKit** | Lean bundles | Smallest ecosystem/enterprise track | Rejected for team risk |
+
+**SEO sub-decision — the real fork:** `[FRS §5]` lists "discovery and selected public content" on public web but does **not** state an SEO requirement — *architecture inference*. Options: (i) accept SPA client-rendering for MVP, (ii) prerender public routes (vite-plugin-prerender-class — cheap, flaky at scale), (iii) split public site into a small SSR/SSG app (Next.js/Astro) later. **Recommendation: proceed with SPA; hold the SEO carve-out as an open sub-decision for the product owner.**
+
+### Devin Recommendation
+
+**Option A — React + TypeScript + Vite**, one SPA serving all four surfaces via role-gated route groups. Recommendations (not approvals): TanStack Query server-state, React Hook Form + Zod, openapi-typescript codegen, Vitest/Playwright testing, Tailwind-vs-CSS-solution is a separate styling decision (Tailwind was in previously-considered context — **not auto-approved**).
+
+**Trade-offs:** loses built-in SSR (accepted — mitigable later if SEO is confirmed); gains the simplest possible deployment, fastest dev loop, and full alignment with the monolith's static-asset serving.
+
+### Open Questions
+
+1. Is organic SEO for public discovery required at MVP? (drives SPA vs SSR fork)
+2. Cookie-based session vs token-in-memory (ties to OD-06)?
+3. Admin+Judge as route groups of one SPA vs separate thin apps (packaging detail — confirm)?
+4. Styling system choice (Tailwind vs CSS-in-JS vs component library) — separate review needed.
 
 ## OD-05 — Mobile Technology
 

@@ -120,7 +120,7 @@ Authorization checks MUST read `UserSystemRole` only. `TalentSkill`, `ProjectCon
 | Client | Stack direction (proposed, open) | Notes |
 |--------|----------------------------------|-------|
 | Mobile | Cross-platform framework — `[Open]` | FRS is mobile-first; native vs cross-platform is an open ADR |
-| Public web | Server-rendered or hybrid for SEO-friendly discovery — `[Proposed]` | Public content must be crawlable for discovery value |
+| Public web | React + TS + Vite SPA recommended; SSR/prerender carve-out only if SEO confirmed critical — `[OD-04 pending]` | Discovery crawlability is inference, not FRS — open sub-decision |
 | Admin web | SPA — `[Proposed]` | Configuration-heavy; form-driven UI for rubric builder |
 | Judge web | SPA, may share codebase/components with Admin web — `[Proposed]` | Focused workflow: assigned entries → dynamic form → submit |
 
@@ -232,6 +232,7 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 |---|----------|--------|
 | OD-01 | Architecture style | **Modular monolith** — 15-domain structure, strong boundaries via Spring Modulith (or equivalent), future extraction preserved |
 | OD-02 | Backend technology | **Java 17+, Spring Boot 3.x, PostgreSQL, Flyway, REST/OpenAPI, WebSocket capability, Docker** |
+| OD-03 | Primary database | **PostgreSQL** — relational typed core; JSONB selectively for config entities; constraint/transaction-first invariants; advanced features (partitioning, replicas, CDC, multi-region) deferred |
 
 ### Future Infrastructure Decisions — NOT approved
 
@@ -243,8 +244,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-03 | Primary database — PostgreSQL (inside OD-02 accepted stack; detailed review completed, recommendation = accept; formal decision pending) | Schema design |
-| OD-04 | Web frontend stack | Web implementation |
+| OD-04 | Web frontend — detailed review completed; recommendation = React + TS + Vite SPA (SEO sub-decision open); formal decision pending | Web implementation |
 | OD-05 | Mobile stack (native vs cross-platform) | Mobile implementation |
 | OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
 | OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
