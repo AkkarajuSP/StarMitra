@@ -100,4 +100,6 @@ Canonical entity → physical table mapping. **GREEN** = exact mapping · **AMBE
 | AssignmentScope | — | M12 | GREEN-DEFERRED | DB-08 — not created (inline scope) |
 | M19/M20 entities | — | — | GREEN | none exist — portals own nothing |
 
-**Summary: 90 canonical concepts → 87 physical tables + 3 intentional non-creations (PasswordCredential, ModerationAppeal, AssignmentScope) + VoteCount as derived-aggregate. RED: 0 — physical design complete.**
+**Summary: canonical concepts → 90 physical tables + 3 intentional non-creations (PasswordCredential, ModerationAppeal, AssignmentScope); VoteCount = derived-aggregate concept, no table. RED: 0 — physical design complete.**
+
+> **Count correction (Flyway phase):** an earlier summary stated "87 physical tables" — that was arithmetic error (90 − 3 deferred while forgetting `VoteCount` has no table and the canonical total was approximate). The authoritative count, verified by executing the migrations on a fresh PostgreSQL 17 database, is **90 tables** — matching the module-by-module enumeration in `PHYSICAL-DATABASE-SCHEMA.md` §5 exactly.
