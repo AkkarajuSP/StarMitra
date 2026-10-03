@@ -14,13 +14,16 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 06 | StarMitra Connect (Messaging) | [MODULE-STARMITRA-CONNECT.md](MODULE-STARMITRA-CONNECT.md) | Designed |
 | 07 | Creative Room / Collaboration | [MODULE-CREATIVE-ROOMS.md](MODULE-CREATIVE-ROOMS.md) | Designed |
 | 08 | Portfolio | [MODULE-PORTFOLIO.md](MODULE-PORTFOLIO.md) | Designed |
-| 09 | Competition | — | Pending |
+| 09 | Competitions | [MODULE-COMPETITIONS.md](MODULE-COMPETITIONS.md) | Designed |
 | 10 | Submissions | — | Pending |
-| 11 | Voting | — | Pending |
-| 12 | Judging / Evaluations / Rubrics | — | Pending |
-| 13 | Scoring / Ranking / Qualification | — | Pending |
-| 14 | Notifications | — | Pending |
-| 15 | Moderation / Admin | — | Pending |
-| 16 | Analytics / Reporting | — | Pending |
+| 11 | Audience Voting | — | Pending |
+| 12 | Judge Management | — | Pending |
+| 13 | Judge Rubrics | — | Pending |
+| 14 | Scoring & Ranking | — | Pending |
+| 15 | Round Progression | — | Pending |
+| 16 | Leaderboards | — | Pending |
+| 17 | Notifications | — | Pending |
+| 18 | Moderation / Admin | — | Pending |
+| 19 | Analytics / Reporting | — | Pending |
 
 > Module numbering is design-sequence only — domain ownership per the baseline's 15-domain map. Specs are design-only; no implementation.
