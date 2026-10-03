@@ -33,7 +33,7 @@ Engineering                   → Devin
 | OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
 | OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | PROPOSED — PENDING REVIEW |
+| OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
 | OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
 | OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
@@ -309,8 +309,20 @@ MVCC + row-level locks + advisory locks cover every FRS concurrency case without
 | Context | Four web surfaces with different characters: public discovery (`[FRS §11]`, SEO-relevant — *inference, not FRS requirement*), authenticated creator/audience app, two internal portals (admin `[§27]`, judge `[§28]`). Brand baseline exists (verified palette, PROPOSED Poppins/Inter); accessibility + mobile-first are FRS NFRs `[§36]`. Backend is Java/Spring Boot REST/OpenAPI + WebSocket (OD-02). |
 | FRS References | §5 channels, §9 profile, §10 media, §11 discovery, §12 Connect, §13 rooms, §15–24 competition flows, §26 moderation, §27–28 portals, §34 screens, §36 NFRs |
 | Options | **A. React + TypeScript + Vite (SPA, all surfaces)** · **B. React + TypeScript + Next.js (SSR-capable, all surfaces)** · **C. Angular** · **D. Vue/Nuxt** · **E. SvelteKit** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** React + TypeScript + Vite SPA is the approved web frontend baseline. `ADR-004` will formalize after the OD sequence. **Binding guardrails:**
+
+1. React + TypeScript + Vite is the approved web frontend baseline.
+2. **One** web application/codebase serves public, authenticated app, judge and admin experiences.
+3. Route groups are organizational/access boundaries only — **backend authorization remains authoritative**.
+4. **Mobile-first responsive design is mandatory.**
+5. WebSocket integration remains isolated from core frontend domain/state logic.
+6. Specific frontend libraries remain separate decisions/recommendations.
+7. Authentication/session strategy remains deferred to OD-06.
+8. SEO/SSR remains an explicit open sub-decision.
+9. Next.js, Redux, Zustand, Tailwind, or other libraries/frameworks are NOT automatically approved.
 
 ### 1–2. Core Technology Evaluation — React + TypeScript + Vite
 
