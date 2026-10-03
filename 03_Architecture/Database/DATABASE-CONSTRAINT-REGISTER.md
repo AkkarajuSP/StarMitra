@@ -46,7 +46,7 @@ Logical constraints only — physical DDL belongs to the next phase. `UQ` unique
 
 ## M08 Portfolio
 
-- `UQ` Portfolio(userId) — one-per-user *(proposal — confirm)*
+- `UQ` Portfolio(userId) — one-per-user **(DB-04 accepted)**
 - `UQ` PortfolioItemMedia(itemId, mediaId)
 - `FK` PortfolioItemContribution.contributionRef → M07 `ProjectCredit` **belonging to the same user** — cannot manufacture credit
 - `CK` item visibility within allowed enum
@@ -56,7 +56,7 @@ Logical constraints only — physical DDL belongs to the next phase. `UQ` unique
 - `UQ` CompetitionCategory(competitionId, name)
 - `UQ` CompetitionRound(competitionId, sequence)
 - `UQ` CompetitionParticipant(competitionId, categoryId, participantRef)
-- `CK` participant = userId XOR projectId (exactly one populated)
+- `CK` participant = userId XOR projectId (exactly one populated) — **DB-03 confirmed**; `participantType` present
 - `CK` eligibility/submission configs versioned; published immutable
 - `TR` competition config/participation/round states transition via module ops only
 
@@ -66,7 +66,7 @@ Logical constraints only — physical DDL belongs to the next phase. `UQ` unique
 - `FK` submission consistency: competitionId/categoryId/roundId/participantId all same-competition — cross-competition impossible
 - `TR` `Finalized` immutable — post-finalize edits rejected; replacement = new version/submission
 - `CK` server-generated `submittedAt` — never client-supplied
-- `FK` SubmissionContributor.memberRef → M07 ProjectMember (live ref; snapshot fields open)
+- `FK` SubmissionContributor.memberRef → M07 ProjectMember (live ref) **+ snapshot columns `snapshotMemberDisplay`,`snapshotRoleName`,`capturedAt` required at finalize (DB-02)**
 
 ## M11 Voting
 
@@ -89,7 +89,7 @@ Logical constraints only — physical DDL belongs to the next phase. `UQ` unique
 - `IM` `EvaluationTemplateVersion` + `EvaluationCriterion` **immutable once published** — changes → new version
 - `FK` JudgeEvaluation.rubricVersionId → published version only
 - `FK` JudgeEvaluation.assignmentId → active JudgeAssignment covering submission
-- `UQ` JudgeEvaluation(judgeId, submissionId, roundId) — one eval per judge/entry/round *(open if multiple allowed)*
+- `UQ` JudgeEvaluation(judgeId, submissionId, roundId) — one eval per judge/entry/round **(DB-09 accepted)**; corrections via authorized reopen/amend
 - `UQ` JudgeEvaluationCriterionScore(evaluationId, criterionId)
 - `CK` score within configured scale
 
@@ -129,8 +129,8 @@ Logical constraints only — physical DDL belongs to the next phase. `UQ` unique
 
 ## M21 Social Engagement
 
-- `UQ` Follow(followerId, followeeId); `CK` follower ≠ followee
-- `UQ` Like(userId, targetType, targetId)
+- `UQ` Follow(followerId, followeeId); `CK` follower ≠ followee — **user-only targets (DB-06)**
+- `UQ` Like(userId, targetType, targetId); `CK` targetType ∈ {MEDIA, PORTFOLIO} **(DB-01)**; `Comment` same target enum; no `parentCommentId`/`editedAt` **(DB-05)**
 - `FK` target refs must resolve to a live, visible, non-restricted entity at write
 - `CK` EngagementCounter never written as business input — derived only
 

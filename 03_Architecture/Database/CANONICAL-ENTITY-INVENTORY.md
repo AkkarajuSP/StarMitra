@@ -58,7 +58,7 @@ Flat inventory companion to [CANONICAL-DATABASE-DESIGN.md](CANONICAL-DATABASE-DE
 
 ## M08 Portfolio
 
-| Portfolio | O | userId | active/restricted | — | visibility | open | M02,M05 |
+| Portfolio | O | userId **unique (DB-04 accepted)** | active/restricted | — | visibility | open | M02,M05 |
 | PortfolioItem | O | itemId | create/edit/remove | — | changes | open | M05,M18 |
 | PortfolioItemMedia | O | (itemId,mediaId) | link | — | — | open | →M04 |
 | PortfolioItemContribution | O | refId | link verified credit | — | — | open | →M07 |
@@ -71,13 +71,13 @@ Flat inventory companion to [CANONICAL-DATABASE-DESIGN.md](CANONICAL-DATABASE-DE
 | CompetitionRound | O | roundId | sequence + timing | — | — | open | M10–M16 (**M15 never duplicates**) |
 | EligibilityRule | O | ruleId | config | — | — | open | consumed M10 |
 | SubmissionConfig | O | configId | config | versioned | — | open | consumed M10 |
-| CompetitionParticipant | O | participantId | register→active | — | registration | open | M10–M16 (user XOR project) |
+| CompetitionParticipant | O | participantId | register→active | — | registration | open | M10–M16 (**participantType + userId XOR projectId — DB-03 confirmed**) |
 
 ## M10 Submissions
 
 | Submission | O | submissionId | Draft→Submitted→…→Finalized (proposal) | — | all transitions + finalize | evidence retention-open | M11–M16,M18,M20 |
 | SubmissionMedia | O | refId | frozen at finalize | — | changes pre-finalize | immutable after | →M04 |
-| SubmissionContributor | O | refId | set at submit | snapshot-open | — | open | →M07 |
+| SubmissionContributor | O | refId | set at submit | **snapshot required (DB-02)** — memberDisplay/roleName/capturedAt at finalize | — | open | →M07 |
 | SubmissionHistory | O | historyId | append-only | — | is-audit | open | — |
 
 ## M11 Audience Voting
@@ -91,14 +91,14 @@ Flat inventory companion to [CANONICAL-DATABASE-DESIGN.md](CANONICAL-DATABASE-DE
 | Judge | O | judgeId | active/inactive | — | create/deactivate | open | M13,M19,M20 |
 | JudgeExpertise | O | expertiseId | config | — | changes | open | M12 only |
 | JudgeAssignment | O | assignmentId | Pending→Active→Revoked→Completed | — | all transitions | open | M12,M13,M20 authz |
-| AssignmentScope | O (optional) | — | — | — | — | open | — |
+| ~~AssignmentScope~~ | **not created (DB-08)** | — | inline scope on JudgeAssignment | — | — | — | — |
 
 ## M13 Judge Rubrics
 
 | EvaluationTemplate | O | templateId | draft→published→retired | versioned | all changes | open | — |
 | EvaluationTemplateVersion | O + **immutable** | versionId | published | **immutable** | publish | preserved | M13,M14,M20 |
 | EvaluationCriterion | O (within version) | criterionId | frozen at publish | in-version | — | preserved | — |
-| JudgeEvaluation | O | evaluationId | open→submitted→locked (proposal) | binds versionId | all ops | open | M14 |
+| JudgeEvaluation | O | evaluationId | open→submitted→locked (proposal) | binds versionId; **UQ(judgeId,submissionId,roundId) — DB-09** | all ops | open | M14 |
 | JudgeEvaluationCriterionScore | O | (evalId,criterionId) | within eval | — | — | open | — |
 
 ## M14 Scoring & Ranking
@@ -142,16 +142,16 @@ Flat inventory companion to [CANONICAL-DATABASE-DESIGN.md](CANONICAL-DATABASE-DE
 | ModerationAction | O | actionId | issued→enforced | — | **always** | preserved | →owning modules |
 | ModerationEvidenceReference | O | evidenceId | attached | — | — | **legal-open** | →M04/others |
 | ModerationRestriction | O | restrictionId | active/expired | — | **always** | open | enforced by owners |
-| ModerationAppeal | O *(open)* | appealId | appeal flow | — | yes | open | — |
+| ~~ModerationAppeal~~ | **DEFERRED (DB-07)** | — | extension point only | — | — | — | — |
 | ModerationPolicyReference | O + versioned | policyVersion | config | versioned | — | preserved | — |
 
 ## M19 / M20 — no entities (presentation/orchestration only)
 
 ## M21 Social Engagement
 
-| Follow | O | (followerId,followeeId) | follow/unfollow | — | block/moderation-aware | open | M02,M04,M05,M17,M18 |
-| Like | O | (userId,targetRef) | like/unlike | — | — | open | M05,M17,M18 — **≠M11 Vote** |
-| Comment | O | commentId | create(+edit/delete open) | — | create/remove | open | M05,M17,M18 |
+| Follow | O | (followerId,followeeId) | follow/unfollow — **user-only MVP (DB-06)** | — | block/moderation-aware | open | M02,M04,M05,M17,M18 |
+| Like | O | (userId,targetRef) | like/unlike — **targets: MEDIA,PORTFOLIO (DB-01)** | — | — | open | M05,M17,M18 — **≠M11 Vote** |
+| Comment | O | commentId | **create+delete only (DB-05)** | — | create/remove | open | M05,M17,M18 |
 | EngagementCounter | D | targetRef | derived | — | — | rebuildable | M02,M05 |
 
 ## Platform Kernel

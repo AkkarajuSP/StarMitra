@@ -20,7 +20,7 @@ Logical index requirements only — no physical DDL. Per ADR-003/011: PostgreSQL
 ### Social Engagement (M21)
 - `Follow` — followerId (my follows); followeeId (my followers + counts)
 - `Like` — (targetType, targetId) for target counts; userId for user's likes
-- `Comment` — (targetType, targetId) + createdAt ordering
+- `Comment` — (targetType, targetId) + createdAt ordering *(no parentCommentId in MVP — DB-05; targets = MEDIA/PORTFOLIO — DB-01)*
 - `EngagementCounter` — targetRef unique
 
 ### Messaging (M06)
@@ -59,7 +59,7 @@ Logical index requirements only — no physical DDL. Per ADR-003/011: PostgreSQL
 
 ### Judge (M12)
 - `Judge` — userId unique
-- `JudgeAssignment` — judgeId (my assignments); (competitionId, categoryId, roundId) for scope resolution; status
+- `JudgeAssignment` — judgeId (my assignments); (competitionId, categoryId, roundId) for scope resolution — **inline scope fields, no scope table (DB-08)**; status
 
 ### Rubrics / Evaluations (M13)
 - `EvaluationTemplateVersion` — templateId + version; context refs (applicability resolution)

@@ -73,7 +73,7 @@
 
 ### M08 Portfolio (4 owned)
 
-| `Portfolio` | Authoritative | `userId` (unique — proposal) | showcase container | one-per-user = proposal |
+| `Portfolio` | Authoritative | `userId` | showcase container | **one-per-user accepted — `UQ(userId)` (DB-04)**; extensible to multi later |
 | `PortfolioItem` | Authoritative | `itemId` | showcase entry | skill refs; visibility; ordering |
 | `PortfolioItemMedia` | Authoritative | (itemId,mediaId) | item→media link | M04 ref |
 | `PortfolioItemContribution` | Authoritative | `refId` | verified-credit link | → M07 `ProjectCredit` — never manufactures contribution |
@@ -86,13 +86,13 @@
 | `CompetitionRound` | Authoritative | `roundId` | round structure + config refs | **owned here — M15 never duplicates** |
 | `EligibilityRule` | Authoritative | `ruleId` | entry rules | business rule ≠ authorization |
 | `SubmissionConfig` | Authoritative | `configId` | submission rules | consumed authoritatively by M10 |
-| `CompetitionParticipant` | Authoritative | `participantId` | participant (user XOR project) | polymorphic ref; unique per competition+category |
+| `CompetitionParticipant` | Authoritative | `participantId` | participant (user XOR project) | `participantType` + `userId`/`projectId` nullable + `CK` exactly-one **(DB-03 confirmed)** |
 
 ### M10 Submissions (4 owned)
 
 | `Submission` | Authoritative | `submissionId` | the competition entry | finalized→immutable evidence |
 | `SubmissionMedia` | Authoritative | `refId` | submission→media link | frozen at finalize |
-| `SubmissionContributor` | Authoritative | `refId` | contributor context | → M07 membership/role + optional snapshot *(open)* |
+| `SubmissionContributor` | Authoritative | `refId` | contributor context | → M07 membership/role **+ evidence-grade snapshot** (`snapshotMemberDisplay`, `snapshotRoleName`, `capturedAt`) populated at finalization **(DB-02)** |
 | `SubmissionHistory` | Authoritative | `historyId` | state trail | append-only audit of transitions |
 
 ### M11 Audience Voting (2 owned + derived)
@@ -106,7 +106,7 @@
 | `Judge` | Authoritative | `judgeId` (userId unique) | domain judge identity | requires `SystemRole=Judge` |
 | `JudgeExpertise` | Authoritative | `expertiseId` | judging qualification | ≠ `TalentSkill` — never auto-access |
 | `JudgeAssignment` | Authoritative | `assignmentId` | scope grant | **the authz boundary** — scoped comp/cat/round |
-| `AssignmentScope` | optional proposal | — | granular scope detail | open — only if needed |
+| ~~`AssignmentScope`~~ | **not created** | — | inline scope on JudgeAssignment | **DB-08 confirmed** — `competitionId`+nullable `categoryId`/`roundId` inline; submission-level scope = future |
 
 ### M13 Judge Rubrics (5 owned)
 
@@ -157,7 +157,7 @@
 | `ModerationAction` | Authoritative | `actionId` | enforcement instruction | owning module applies state transition |
 | `ModerationEvidenceReference` | Authoritative | `evidenceId` | evidence link | refs only — never copied binaries |
 | `ModerationRestriction` | Authoritative | `restrictionId` | **admin-enforced** restriction | ≠ M06 `UserBlock` |
-| `ModerationAppeal` | Authoritative *(open)* | `appealId` | appeal record | extension point — original preserved |
+| ~~`ModerationAppeal`~~ | **DEFERRED (DB-07)** | — | extension point only | not an MVP physical table; add later |
 | `ModerationPolicyReference` | Authoritative + versioned | `policyVersion` | policy taxonomy | historical decisions reproducible |
 
 ### M19 Admin Portal / M20 Judge Portal — **0 entities**
@@ -206,7 +206,7 @@ Access: backend authz → short-lived signed URL; storage ACL second layer. No B
 
 ## 7. Social Engagement (M21)
 
-`Follow` user→user (other targets **open** — typed `targetRef` accommodates extension without schema change); `Like`/`Comment` polymorphic `targetRef` (target-type sets **AMBER/open**). `EngagementCounter` derived from source rows. **`Like` ≠ `Vote` — separate entities, separate modules.**
+`Follow` user→user **(MVP-locked — DB-06)**; `Like`/`Comment` polymorphic `targetRef` with `targetType ∈ {MEDIA, PORTFOLIO}` **(MVP — DB-01)**; `Comment` = create+delete only, no edit/threading **(DB-05)** — extensible `targetRef`/`parentCommentId`-addable shapes preserved for future. `EngagementCounter` derived from source rows. **`Like` ≠ `Vote` — separate entities, separate modules.**
 
 ## 8. Creative Rooms
 
@@ -268,10 +268,10 @@ M19/M20 own **zero entities** — their persistence requirements are entirely sa
 
 | Relationship | Model | Status |
 |--------------|-------|--------|
-| `Like`/`Comment` target | `targetType`+`targetId` typed ref | **AMBER** — target-type enum = open PO decision |
-| `Follow` target | userId now; `targetRef` accommodates future | user-only MVP; extension open |
-| `CompetitionParticipant` | userId XOR projectId | modeled as typed ref — resolves cleanly |
-| `SubmissionContributor` | memberRef + optional snapshot fields | snapshot strategy **AMBER/open** |
+| `Like`/`Comment` target | `targetType`+`targetId` typed ref | **RESOLVED (DB-01)** — enum = {MEDIA, PORTFOLIO} MVP |
+| `Follow` target | followerId→followeeId | **RESOLVED (DB-06)** — user-only MVP; extensible shape retained |
+| `CompetitionParticipant` | `participantType` + userId XOR projectId | **RESOLVED (DB-03)** — single typed table confirmed |
+| `SubmissionContributor` | memberRef + snapshot fields | **RESOLVED (DB-02)** — snapshot columns required at finalize |
 | `ModerationEvidenceReference`/`Report.target` | typed ref to any reportable entity | consistent pattern |
 | `Notification.sourceRef` + deepLink | typed ref | presentation-only |
 | `LeaderboardProjection` source | refs to result/entry | derived |
@@ -296,9 +296,9 @@ UUIDv7-style time-ordered identifiers for all primary keys — externally safe (
 
 ## 27. Readiness Matrix Summary
 
-- **GREEN** (~85% of entities): all M01–M04, M06–M10 core, M12–M18, M21 Follow/counter, all config entities — sufficiently defined for physical schema
-- **AMBER** (modelable shape, scope needs PO decision): `Like`/`Comment` target-type sets, `SubmissionContributor` snapshot fields, `CompetitionParticipant` polymorphism shape (resolved as typed-ref), `PasswordCredential`, `ModerationAppeal`, `AssignmentScope`, M05 projection fields, `Portfolio` cardinality, comment edit/reply
-- **RED:** none — nothing is insufficiently defined to model
+- **GREEN** (~100% of MVP entities): DB-01…DB-09 resolved — every entity is now sufficiently defined for physical schema
+- **AMBER** (remaining — **config-value level only, never schema-shape**): lifecycle status vocabularies, retention durations, scoring formulas/tie-breaks, vote reversal, deadline precedence, taxonomies (DB-10…DB-20)
+- **RED:** none
 
 Full registers: [DATABASE-OPEN-DECISIONS.md](DATABASE-OPEN-DECISIONS.md).
 
@@ -308,9 +308,9 @@ Full registers: [DATABASE-OPEN-DECISIONS.md](DATABASE-OPEN-DECISIONS.md).
 **B. Authoritative:** ~72
 **C. Derived/projection:** ~12 (M05×2, M11 counts, M14 aggregates+ranking+qualification, M16 projection+snapshot, M21 counter, kernel analytics)
 **D. Platform Kernel:** `AuditLog` + `PlatformConfig` + `AnalyticsProjection` (3)
-**E. AMBER decisions:** see §27 — ~9 items
+**E. AMBER decisions:** all resolved (DB-01…DB-09 — see `DATABASE-OPEN-DECISIONS.md`); remaining open items are config-value level (DB-10…DB-20)
 **F. RED:** none
-**G. Constraints needing resolution before physical schema:** Like/Comment target-type enums, submission-contributor snapshot fields, `CompetitionParticipant` shape (typed-ref chosen — confirm), Portfolio cardinality, comment edit semantics, evidence-retention policies
+**G. Constraints needing resolution before physical schema:** **none — DB-01…DB-09 gate cleared**; evidence-retention *durations* remain open policy (columns/flags exist, values = PO)
 **H. Recommended next phase:** **Physical Database / Schema Design** → Flyway strategy → implementation schema → validation. **Not started.**
 
 ---

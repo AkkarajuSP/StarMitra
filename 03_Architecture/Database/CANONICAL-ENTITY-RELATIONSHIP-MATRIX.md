@@ -54,12 +54,12 @@ Companion to [CANONICAL-DATABASE-DESIGN.md](CANONICAL-DATABASE-DESIGN.md). FK st
 
 | Competition → CompetitionCategory → CompetitionCategorySkill(→M03) | 1—N—N | |
 | Competition → CompetitionRound | 1—N ordered | round config refs → M11 VoteConfig, M13 rubric, M15 progression |
-| Competition → EligibilityRule / SubmissionConfig / CompetitionParticipant | 1—N | participant: userId XOR projectId(→M07) |
+| Competition → EligibilityRule / SubmissionConfig / CompetitionParticipant | 1—N | participant: `participantType` + userId XOR projectId(→M07) **(DB-03)** |
 
 ## Submission (M10)
 
 | CompetitionParticipant → Submission | 1—N (constraints per config) | **team = ONE entry** |
-| Submission → SubmissionMedia / SubmissionContributor / SubmissionHistory | 1—N | contributor → M07 member+role refs (+snapshot-open) |
+| Submission → SubmissionMedia / SubmissionContributor / SubmissionHistory | 1—N | contributor → M07 member+role refs **+ snapshot fields at finalize (DB-02)** |
 | Submission → Competition/Category/Round | N—1 refs→M09 | context validated |
 
 ## Voting → Scoring → Progression → Leaderboard (M11→M16)
