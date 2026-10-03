@@ -258,7 +258,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 | OD-10 | Cache — **accepted**, ADR-010 formalization pending | — |
 | OD-11 | Search — **accepted in principle**, ADR-011 formalization pending | — |
 | OD-12 | Cloud/deployment — **accepted in principle**: managed container + managed PG + object storage + CDN, single-region, no K8s; provider OPEN; IaC-as-principle (Terraform recommended, not immutable); RTO/RPO + budget open; ADR-012 formalization pending | Deployment design |
-| OD-13 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
+| OD-13 | Analytics — detailed review completed; recommendation = PG operational reporting + rollup read models in D15; warehouse/third-party/event-streaming deferred w/ triggers; formal decision pending | D15 reporting |
 
 Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-12. *(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
 

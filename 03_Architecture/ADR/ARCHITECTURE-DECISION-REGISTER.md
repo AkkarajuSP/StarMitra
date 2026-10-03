@@ -44,7 +44,7 @@ Engineering                   → Devin
 | OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
 | OD-12 | Cloud/deployment | **Managed container platform + managed PG + object storage + CDN; no K8s for MVP; provider OPEN** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
-| OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
+| OD-13 | Analytics | **PostgreSQL-based operational reporting + read models; event model deferred; no warehouse/third-party** | PROPOSED — PENDING REVIEW |
 
 ---
 
@@ -1549,19 +1549,103 @@ TLS everywhere (terminated at LB/CDN); private subnet for DB (no public exposure
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-13 |
-| Decision | Analytics architecture: what runs on the transactional system vs dedicated analytics for MVP. |
-| Context | `[FRS §29]` needs: registered users, active creators, skill popularity, uploads/engagement, competition participation, voting activity, judge completion, per-criterion score averages, round progression, collaboration stats, top-talent metrics. Three distinct layers must not be conflated. |
-| FRS References | §29 reporting/analytics, §27 admin dashboards, §30 audit |
-| Options | **A. Operational reporting on transactional DB** (admin queries + read replica/materialized views). **B. + Lightweight product analytics** (PostHog/Mixpanel/Amplitude-class event tracking). **C. Data warehouse/analytics platform** (BigQuery/Snowflake/Redshift + dbt + BI). |
-| Advantages | **A:** zero new infra; admin KPIs are direct aggregates of system-of-record; always consistent. **B:** product insight (funnels, retention, feature usage) engineering can't get from aggregates; cheap/free tiers; fast. **C:** real BI, historical modeling, cross-source analysis. |
-| Disadvantages | **A:** heavy queries compete with OLTP (mitigate: replica/scheduled rollups); not a product-analytics tool. **B:** vendor events pipeline; consent/privacy handling; another tool. **C:** serious build+ops+cost; unjustified before product-market scale. |
-| StarMitra Fit | **A+B for MVP:** §29 metrics are mostly operational aggregates → A; product analytics → B cheaply. **C deferred** until data volume/BI questions justify. Audit `[FRS §30]` stays in transactional store regardless — it's not analytics. |
-| Team Impact | A: report queries + dashboard UI work (D15). B: event taxonomy + SDK integration effort. C: data-engineering ownership. |
-| Cost/Complexity | A low; B low-medium; C high. |
-| Risks | A: reporting queries degrade OLTP at competition peaks → read replica + off-peak rollups. B: privacy/consent for tracking — align with `[FRS §9]` privacy posture; anonymize judge-affecting data. Skipping B → blind product decisions. |
-| Devin Recommendation | **A + B:** §29 operational reporting directly on transactional DB (read replica + materialized/scheduled rollups in D15); add lightweight product-analytics tool for funnels/retention; **defer warehouse/data platform** to a post-MVP ADR. |
+| Decision | Analytics architecture for MVP: operational reporting vs product analytics vs future data platform. |
+| Context | `[FRS §29]` requires admin analytics + reporting dashboards; `[FRS §30]` audit is separate from analytics. No FRS requirement mandates a warehouse, event streaming, or third-party analytics platform. |
+| FRS References | §27 admin dashboards, §29 reporting/analytics, §30 audit, §36 observability |
+| Options | **A. PostgreSQL operational reporting** (queries + read models/materialized views) · **B. + first-party event capture (DB-persisted)** · **C. Third-party analytics platform (PostHog/Mixpanel/GA-class)** · **D. Warehouse/data platform** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. FRS Analytics Requirements
+
+`[FRS §29]` explicitly requires: **registered users, active creators, skill/category popularity, uploads/engagement, competition participation, voting activity, judge completion, per-criterion score averages, round progression, collaboration statistics, top-talent metrics.** All are *operational aggregates of system-of-record data* — none require a warehouse. *Inference:* product-level funnels/retention/feature-usage analytics are not FRS requirements — flagged separately.
+
+### 2. Analytics vs Operational Data — Boundaries
+
+| Layer | Store | Rule |
+|-------|-------|------|
+| Transactional business data | PostgreSQL | **Authoritative** |
+| Reporting/read models | PostgreSQL (views/materialized/rollup tables) | Derived, refreshable — never authoritative |
+| Analytics events | PG table (if first-party capture is adopted) | Telemetry, not facts |
+| Audit `[FRS §30]` | PostgreSQL `AuditLog` | **Separate** — compliance trail, never mixed with analytics |
+| **Competition results** | PostgreSQL | Analytics can NEVER override authoritative records |
+
+### 3. MVP Analytics Architecture
+
+| Approach | Verdict |
+|----------|---------|
+| PG queries/read models/materialized views | **Recommended** — all §29 metrics are derivable aggregates |
+| Async aggregation jobs (rollups) | Recommended where heavy (leaderboards, per-criterion averages) — in-app job mechanism (OD-12 §10) |
+| Separate analytics datastore | Rejected at MVP — no justification |
+| Warehouse/lake | Rejected — premature |
+| Managed analytics platform | Deferred — product decision |
+
+### 4. Event Model — do we need one?
+
+FRS doesn't require product-event tracking. *Recommendation:* **deferred** — if first-party product analytics is wanted later, a minimal DB-persisted event record (name, actor, entity, properties JSONB, timestamp) with naming/versioning conventions; dedup via event ID; ordering by timestamp+ID; retention per product policy. **Not implemented/approved now** — architecture notes only.
+
+### 5. Privacy & Data Governance
+
+- Analytics aggregates **non-content, non-private** operational metrics; private user content is never an analytics input
+- Reporting surfaces enforce admin-role authz; judge-identity data handled per `[FRS §19]` scoping
+- Data minimization: aggregate-first; row-level personal data excluded from analytics surfaces
+- Deletion/anonymization follows product data-retention policy *(product decision — FRS silent)*; retention/deletion of analytics aggregates inherits source-data lifecycle
+- Legal/compliance review (consent, residency) flagged as **separate review — not invented here**
+
+### 6. Competition Analytics
+
+All §29 competition metrics (submissions, participation, voting, judge evaluations, scoring, ranking, qualification, round progression) read from authoritative records — aggregates are *derived views*; scoring/ranking outputs remain computed by the scoring engine, not by analytics. Analytics reports on outcomes; it never produces them.
+
+### 7. Performance — where queries run
+
+| Load | Approach |
+|------|----------|
+| Admin dashboards, light aggregates | Direct PG queries (indexed) |
+| Heavy/recurring aggregates | Read-model or materialized-view rollups (refresh via scheduled job) |
+| Competition-peak protection | Report on replica **only if measured contention demands** (OD-12 trigger) |
+
+### 8. Realtime/Dashboards
+
+Admin/judge dashboards: **synchronous queries + periodic aggregation** — sufficient for §29. Realtime dashboards are not FRS-required; live counters (where admin-enabled `[§18]`) come via OD-09 WS events, not an analytics pipeline.
+
+### 9. Product vs Operational Analytics
+
+Distinct layers: **operational observability** (logs/metrics/traces — baseline §18, *not analytics*); **business/competition analytics** (§29 aggregates — this OD's MVP scope); **product usage analytics** (funnels/retention — deferred to a product decision + possible future tool).
+
+### 10. Third-Party Analytics
+
+**None approved.** GA/Mixpanel/Amplitude/PostHog/Segment/Snowflake/BigQuery/Redshift/ClickHouse all deferred — each requires product justification + privacy review. If adopted, they operate *alongside* PG, never as authoritative.
+
+### 11. Future Scale Triggers (each = separate decision)
+
+| Technology | Trigger |
+|------------|---------|
+| Separate analytics datastore | §29 query load degrades OLTP despite rollups |
+| Data warehouse | Cross-source/historical BI questions emerge |
+| Event streaming (Kafka-class) | High-volume first-party event capture required |
+| CDC | Analytics needs change-data-capture feeds |
+| Dedicated analytics pipeline | Multi-source ingestion becomes necessary |
+| BI platform | Non-engineers need self-serve reporting |
+| Real-time analytics infra | Live operational dashboards become product requirement |
+
+### 12. Security
+
+Analytics never bypasses authz/privacy/moderation/competition-access controls — derived surfaces enforce the same role scoping; aggregate-only where privacy demands.
+
+### 13. Relationship to Existing Decisions
+
+Preserves OD-01 (analytics lives in D15 module), OD-03 (PG only), OD-07 (reporting APIs in `/api/v1/admin`), OD-10 (no cache-authoritative analytics), OD-11 (search ≠ analytics), OD-12 (no new infra). **No Redis/Kafka/RabbitMQ for analytics.**
+
+### 14. Devin Recommendation
+
+**Option A — PostgreSQL operational reporting** (direct queries + read-model/materialized rollups in D15, scheduled aggregation jobs) covering all FRS §29 metrics. First-party event capture deferred pending product need; third-party analytics + warehouse deferred with documented triggers. Status proposal: **ACCEPTED IN PRINCIPLE** upon review.
+
+### Open Questions (Product Owner)
+
+1. Is product-usage analytics (funnels/retention) wanted at MVP — and if so, first-party capture or a tool?
+2. Reporting freshness SLA — live vs scheduled rollups acceptable?
+3. Analytics data-retention/anonymization policy (FRS silent)
+4. Legal/consent review for any future event tracking
 
 ---
 
