@@ -71,7 +71,7 @@ Missing M14 result → progression-blocked + alert; incomplete scoring → wait/
 
 ## 16. Progression Configuration
 
-`ProgressionConfiguration` — **ownership boundary open** (likely M09 config consumed by M15, or M15-owned): mode, threshold, top-N, tie policy, eligibility, next-round mapping. **Versioned; immutable once progression begins.** Never duplicated with M14 scoring config or M09 competition lifecycle.
+`ProgressionConfiguration` — **M15-owned** (resolved CM-06): mode, threshold, top-N, tie policy, eligibility, next-round mapping. **Versioned; immutable once progression begins.** Never duplicated with M14 scoring config or M09 competition lifecycle. M09 owns `CompetitionRound` structure; M14 owns scoring/ranking/qualification; M15 owns progression config + decision; M16 consumes for presentation.
 
 ## 17. Auditability — every decision explainable
 

@@ -25,11 +25,11 @@ PROJECT/TEAM: Vote → Project/Team Submission (ONE vote, attached to the entry)
 
 | Owns | Does NOT own |
 |------|--------------|
-| `Vote`, `VoteConfig` (voting-specific limits/window if not M09-owned), derived count projections (rebuildable), abuse/audit references | Competition/Category/Round/Participant (M09), Submission (M10), Media (M04), Project membership (M07), JudgeEvaluation/Rubric/Score/Ranking/Progression/Leaderboard (M12–16), moderation policy, notification delivery |
+| `Vote`, `VoteConfig` (voting-behavior config — M11-owned; M09 holds only a structural reference), derived count projections (rebuildable), abuse/audit references | Competition/Category/Round/Participant (M09), Submission (M10), Media (M04), Project membership (M07), JudgeEvaluation/Rubric/Score/Ranking/Progression/Leaderboard (M12–16), moderation policy, notification delivery |
 
 ## 5. Voting Configuration — separate from Vote record
 
-`VoteConfig` (or M09 round-config consumed): enabled flag, eligible rounds/submissions, voter eligibility, window, limits, duplicate rules, abuse-control toggles, target type. **No fixed model invented** — "1 vote/day/competition/submission" etc. are all *configurable options*, never assumptions. Config ≠ Vote.
+`VoteConfig` — **M11-owned** (voting *behavior*): voter eligibility, limits, duplicate rules, abuse toggles, target type, window *enforcement details*. **No fixed model invented** — "1 vote/day/competition/submission" etc. are all *configurable options*, never assumptions. Config ≠ Vote. Boundary (CM-05): **M09 owns voting *structure*** — whether a round permits voting and which `VoteConfig` applies (a reference, not the config itself); **M11 owns the `VoteConfig` entity** — how votes behave.
 
 ## 6. Voter Eligibility
 

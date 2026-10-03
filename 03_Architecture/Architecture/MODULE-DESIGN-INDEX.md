@@ -26,5 +26,6 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 18 | Moderation | [MODULE-MODERATION.md](MODULE-MODERATION.md) | Designed |
 | 19 | Admin Portal | [MODULE-ADMIN-PORTAL.md](MODULE-ADMIN-PORTAL.md) | Designed |
 | 20 | Judge Portal | [MODULE-JUDGE-PORTAL.md](MODULE-JUDGE-PORTAL.md) | Designed |
+| 21 | Social Engagement (Follow/Like/Comment) | — | Owner assigned (CM-01) — spec pending |
 
 > Module numbering is design-sequence only — domain ownership per the baseline's 15-domain map. Specs are design-only; no implementation.

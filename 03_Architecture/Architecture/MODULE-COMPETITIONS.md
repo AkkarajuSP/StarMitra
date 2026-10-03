@@ -131,7 +131,7 @@ Unauthorized admin ops (system-role-gated); draft-competition enumeration (unifo
 | Module | Competition provides | Consumes |
 |--------|---------------------|----------|
 | **10 Submissions** | SubmissionConfig, deadlines, participant context | submission lifecycle, media evidence |
-| **11 Voting** | Round voting-mode config, scope | vote collection/counters |
+| **11 Voting** | Round voting-structure config (whether voting applies + `VoteConfig` reference); M11 owns `VoteConfig` (CM-05) | vote collection/counters |
 | **12 Judge Mgmt** | Judge assignment scope (round/category) | assignments |
 | **13 Rubrics** | Rubric config reference per round/category | evaluation criteria |
 | **14 Scoring/Ranking** | Scoring config reference | scoring outputs |

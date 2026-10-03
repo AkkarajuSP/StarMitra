@@ -13,7 +13,7 @@
 `[Proposed]` **WebSocket inside the Spring Boot modular monolith**, in the isolated messaging module (D6), per OD-09 review:
 
 - **Transport:** WebSocket. Protocol detail (STOMP-over-WS vs native WS frames) deferred to implementation spike — `[Open]`.
-- **Persistence-first:** messages durably stored in PostgreSQL (`Conversation`, `ConversationParticipant`, `Message`, `MessageAttachment`, `MessageReceipt`) **before** fan-out. WebSocket is transport, not storage.
+- **Persistence-first:** messages durably stored in PostgreSQL (`Conversation`, `ConversationMember`, `Message`, `MessageAttachment`, `MessageReceipt`) **before** fan-out. WebSocket is transport, not storage.
 - **Delivery semantics:** at-least-once transport + idempotent processing; client-generated `clientMessageId` dedup (unique constraint per OD-07); server ACK confirms persistence; **no exactly-once claim**.
 - **Ordering:** per-conversation sequence only (minimum necessary).
 - **Reconnect:** client resumes via REST history (`?after=<cursor>`) + re-opened WS; missed-message recovery is a read-path.

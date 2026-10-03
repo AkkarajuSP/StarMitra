@@ -94,7 +94,7 @@ Key rules: skills add/remove must not delete portfolio `[UAT-03]`; skill changes
 |--------|--------|
 | **Purpose** | Internal communication layer `[FRS §12]` |
 | **Responsibilities** | 1:1, group, and project-linked conversations; text, image, audio, short video, document messages; timestamps, delivery/read status; report/block controls; per-user notification controls |
-| **Major entities** | `Conversation`, `ConversationParticipant`, `Message`, `MessageAttachment` (→ `MediaAsset`), `Block` |
+| **Major entities** | `Conversation`, `ConversationMember` *(was `ConversationParticipant` — standardized CM-04)*, `Message`, `MessageAttachment` (→ `MediaAsset`), `Block` |
 | **Dependencies** | D1, D3 (attachments), D7 (project-linked threads), D13 (notifications) |
 | **APIs/events** | Conversation CRUD, `POST /conversations/{id}/messages`, read receipts. Events: `MessageSent`, `ConversationCreated`. Real-time transport `[Open OD-8]` |
 | **Ownership boundary** | Transport of communication. A room's *collaboration state* (tasks, credits) is D7, not D6 |

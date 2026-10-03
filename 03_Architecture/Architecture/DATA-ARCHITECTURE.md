@@ -35,7 +35,7 @@ SOCIAL (D4) / DISCOVERY (D5)
   FeedEntry / SearchDocument / TrendingSnapshot  (derived read models only)
 
 MESSAGING (D6)
-  Conversation ──< ConversationParticipant
+  Conversation ──< ConversationMember
   Message ──────── sender, timestamps, delivery/read state
   MessageAttachment → MediaAsset
 

@@ -221,3 +221,21 @@ Engagement model (follow/like/comment scope — CM-01), AuditLog owner (CM-02), 
 - Audit ≠ telemetry ≠ analytics
 - M19/M20 presentation-only boundaries
 - No circular dependencies; no cross-entity duplication
+
+---
+
+## Resolution Status (post-review addendum)
+
+All findings CM-01…CM-07 resolved in `CROSS-MODULE-CONSISTENCY-RESOLUTION-ADDENDUM.md`:
+
+| ID | Resolution |
+|----|-----------|
+| CM-01 | **M21 Social Engagement** assigned as owner of `Follow`/`Like`/`Comment`/`EngagementCounter` — baseline D4 domain restored as a module (not an invention; M02/M05 placements rejected as boundary violations) |
+| CM-02 | **Platform Kernel** (cross-cutting, non-business-module concern) owns `AuditLog`/`PlatformConfig`/analytics projections — all modules append via write-contract; M19 views only; M01 emits auth events into it |
+| CM-03 | `UserBlock` added to M06 ownership — user-initiated privacy control, distinct from M18 `ModerationRestriction` |
+| CM-04 | `ConversationMember` standardized; baseline/reference docs updated |
+| CM-05 | M09 = voting *structure* (does a round have voting + `VoteConfig` ref); M11 = voting *behavior* (`VoteConfig` entity) |
+| CM-06 | `ProgressionConfiguration` confirmed **M15-owned** |
+| CM-07 | `/api/v1/judges/me` standardized; M20 updated |
+
+**Database design is unblocked** — all entity ownership is now assigned.

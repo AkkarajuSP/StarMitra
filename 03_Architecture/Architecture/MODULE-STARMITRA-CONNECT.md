@@ -30,7 +30,7 @@ Own StarMitra's messaging capability `[FRS §12]` — 1:1, group, and project-li
 
 | Owns | Does not own |
 |------|--------------|
-| `Conversation`, `ConversationMember`, `Message`, `MessageReceipt`, `MessageAttachment` (ref), idempotency/dedup state | MediaAsset/Variant (MODULE 04), UserProfile (02), identity/roles (01), project membership (Rooms), moderation policy, notification delivery, project contribution roles |
+| `Conversation`, `ConversationMember`, `Message`, `MessageReceipt`, `MessageAttachment` (ref), `UserBlock`, idempotency/dedup state | MediaAsset/Variant (MODULE 04), UserProfile (02), identity/roles (01), project membership (Rooms), moderation policy, notification delivery, project contribution roles |
 
 ## 6. Conversation Types
 
@@ -81,7 +81,7 @@ Authenticated sender; membership checked per send/event/read; group-member + pro
 
 ## 13. Block / Report
 
-- **Block:** blocker→blocked message-send rejected; historical message visibility + block semantics = **OPEN product decision** (FRS names capability, not policy)
+- **Block:** M06 owns `UserBlock` (blockerId→blockedId — user-initiated privacy control, **distinct from M18 `ModerationRestriction`** which is admin-enforced). Effect: blocker→blocked message-send rejected + blocked-user content suppressed (consumed by M02 visibility + M05 discovery). Historical message visibility + detailed semantics = **OPEN product decision** (FRS names capability, not policy)
 - **Report:** report record passed to Moderation (owns policy); Connect stores reference + audit
 - Audit on block/report actions
 
@@ -102,7 +102,7 @@ Connect emits domain signals (`MessageReceived`, `MessageRead`*(if product-requi
 | `Message` | ✅ | id, conversationId, senderId, clientMessageId, type, content, sequence, createdAt, state |
 | `MessageReceipt` | ✅ | messageId, userId, deliveredAt, readAt |
 | `MessageAttachment` | ✅ | messageId, mediaId (ref→MODULE 04), role |
-| Idempotency record | ✅ | clientMessageId→messageId dedup |
+| `UserBlock` | ✅ | blockerId+blockedId unique; user-initiated privacy control (createdAt, active state) — **distinct from M18 `ModerationRestriction`** (admin-enforced); blocks message-send + suppresses blocked-user content via M02/M05 consumption |
 
 All PG-authoritative; no derived projections needed at MVP (receipts computed).
 

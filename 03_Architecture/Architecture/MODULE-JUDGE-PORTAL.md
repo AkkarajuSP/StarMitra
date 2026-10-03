@@ -85,7 +85,7 @@ Own submitted eval + *(if released)* aggregate score/ranking/qualification/leade
 
 ## 17. API Boundary (conceptual — ADR-007)
 
-`GET /api/v1/judge/me/assignments` · `/{contextId}/scope` · `GET /api/v1/judge/me/submissions` · `/{id}` · `/{id}/evidence` · `GET /rubrics/{contextId}` · `GET/POST/PUT /api/v1/judge/me/evaluations` · `/{id}/submit` · `GET /{id}/history` · `GET /results` (release-gated). `/api/v1/judge`; DTOs; Problem Details; idempotent submission.
+`GET /api/v1/judges/me/assignments` · `/{contextId}/scope` · `GET /api/v1/judges/me/submissions` · `/{id}` · `/{id}/evidence` · `GET /api/v1/judges/me/rubrics/{contextId}` · `GET/POST/PUT /api/v1/judges/me/evaluations` · `/{id}/submit` · `GET /{id}/history` · `GET /api/v1/judges/me/results` (release-gated). Judge self-service namespace standardized on `/api/v1/judges/me` (CM-07); DTOs; Problem Details; idempotent submission.
 
 ## 18. Security
 
