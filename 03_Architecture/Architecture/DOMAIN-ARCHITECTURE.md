@@ -83,7 +83,7 @@ Key rules: skills add/remove must not delete portfolio `[UAT-03]`; skill changes
 | **Purpose** | Feed, browse, search, trending `[FRS §11]` |
 | **Responsibilities** | Personalized feed (follows, skills, engagement); browse by skill/category; trending; competition content; project/room showcases; search across talent/content/projects/competitions; filters |
 | **Major entities** | Read models only `[Proposed]`: `FeedEntry`, `SearchDocument`, `TrendingSnapshot` |
-| **Dependencies** | Consumes events from D2/D3/D4/D7/D8; search engine `[Open OD-10/OD-12 adjacent]` |
+| **Dependencies** | Consumes events from D2/D3/D4/D7/D8; search engine `[Open OD-11/OD-13 adjacent]` |
 | **APIs/events** | `GET /feed`, `/discover`, `/search`. Consumes most publish events |
 | **Ownership boundary** | Read-optimized projections; never a system of record |
 | **Data ownership** | Its own derived/read-model stores only |
@@ -212,7 +212,7 @@ Key rules: skills add/remove must not delete portfolio `[UAT-03]`; skill changes
 | **Ownership boundary** | Admin UI/API orchestration + audit records + platform config. Business entities remain owned by their domains — D15 does not reach into their tables |
 | **Data ownership** | `AuditLog`, `PlatformConfig`, analytics projections |
 
-Reporting & analytics `[FRS §29]`: registered users, active creators, skill popularity, uploads/engagement, competition participation, voting activity, judge completion, per-criterion averages, round progression, collaboration stats, top-talent metrics. `[Open OD-10]` in-app queries vs dedicated analytics store.
+Reporting & analytics `[FRS §29]`: registered users, active creators, skill popularity, uploads/engagement, competition participation, voting activity, judge completion, per-criterion averages, round progression, collaboration stats, top-talent metrics. `[Open OD-13]` in-app queries vs dedicated analytics store.
 
 ---
 

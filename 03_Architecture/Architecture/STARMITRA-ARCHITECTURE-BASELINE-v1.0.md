@@ -235,10 +235,11 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | OD-03 | Primary database | **PostgreSQL** — relational typed core; JSONB selectively for config entities; constraint/transaction-first invariants; advanced features (partitioning, replicas, CDC, multi-region) deferred |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** — one codebase, route-group surfaces (public/app/judge/admin); backend authZ authoritative; mobile-first mandatory; SEO/SSR open sub-decision; specific libraries not auto-approved |
 | OD-05 | Mobile | **React Native + TypeScript + Expo** — creator/audience scope only; admin/judge stay web; no UI reuse assumed; platform sequencing, push provider, OTA tooling, native modules = separate decisions |
+| OD-06 | Authentication/session | **First-party Spring Security** — OTP primary, JWT access + opaque persisted refresh (rotation + reuse detection + revocation); web=httpOnly cookies+CSRF, mobile=bearer+secure enclave; unified mechanism; social login/IdP deferred; no Redis implied |
 
 ### Future Infrastructure Decisions — NOT approved
 
-The following are **not** automatically approved by OD-02 and each requires its own justification/decision: **Redis, Kafka, RabbitMQ, Elasticsearch/OpenSearch, Kubernetes, Service Mesh.** They remain evaluated inside their respective ODs (OD-08 realtime, OD-09 cache, OD-10 search, OD-11 cloud/deployment).
+The following are **not** automatically approved by OD-02 and each requires its own justification/decision: **Redis, Kafka, RabbitMQ, Elasticsearch/OpenSearch, Kubernetes, Service Mesh.** They remain evaluated inside their respective ODs (OD-09 realtime, OD-10 cache, OD-11 search, OD-12 cloud/deployment).
 
 ### Open Decisions
 
@@ -246,15 +247,15 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-06 | AuthN/session — detailed review completed; recommendation = first-party Spring Security + OTP + JWT/refresh, unified across clients; formal decision pending | D1 implementation |
-| OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
-| OD-08 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
-| OD-09 | Cache — Redis is **not** auto-approved | D12/scaling needs |
-| OD-10 | Search (DB FTS vs dedicated engine) | D5 implementation |
-| OD-11 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
-| OD-12 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
+| OD-07 | API architecture/contract strategy — detailed review completed; formal decision pending | API design |
+| OD-08 | Media storage + CDN + transcoding providers | D3 implementation |
+| OD-09 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
+| OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |
+| OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
+| OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
+| OD-13 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
 
-Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-11.
+Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-12. *(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
 
 ## 21. Proposed ADRs
 
@@ -292,7 +293,7 @@ To be created in `03_Architecture/ADR/` upon review (numbered when drafted):
 | §25 Notifications | NOTIFICATION-ARCHITECTURE, D13 |
 | §26 Moderation | D14, SECURITY-ARCHITECTURE |
 | §27–28 Portals | §7, D15 |
-| §29 Analytics | D15, `[OD-10]` |
+| §29 Analytics | D15, `[OD-13]` |
 | §30 Audit | §18, OBSERVABILITY-ARCHITECTURE |
 | §31 Data model | DATA-ARCHITECTURE |
 | §32 BR-01–15 | §6.1 + per-domain rule mapping in DOMAIN-ARCHITECTURE |

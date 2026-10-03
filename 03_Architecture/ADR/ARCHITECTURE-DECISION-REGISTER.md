@@ -5,7 +5,9 @@
 
 ## Purpose
 
-Single working register for all major StarMitra architecture decisions (OD-01 … OD-12). Every entry presents genuine alternatives with real trade-offs — no decision is pre-decided.
+Single working register for all major StarMitra architecture decisions (OD-01 … OD-13). Every entry presents genuine alternatives with real trade-offs — no decision is pre-decided.
+
+**Numbering note:** OD-07 (API Architecture / API Contract Strategy) was inserted during review; the original media/realtime/cache/search/cloud/analytics sequence was renumbered to OD-08 … OD-13 to preserve review order. All cross-references updated.
 
 ## Status Convention
 
@@ -35,13 +37,14 @@ Engineering                   → Devin
 | OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-06 | AuthN/identity | **First-party Spring Security + OTP (FRS) + JWT access / opaque refresh; unified across clients** | PROPOSED — PENDING REVIEW |
-| OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
-| OD-08 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
-| OD-09 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
-| OD-10 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
-| OD-11 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
-| OD-12 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
+| OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| OD-07 | API architecture/contract | REST + OpenAPI contract-first-lite, `/api/v1` versioning, RFC 9457 errors, cursor/offset split pagination | PROPOSED — PENDING REVIEW |
+| OD-08 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
+| OD-09 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
+| OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
+| OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
+| OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
+| OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
 
 ---
 
@@ -270,7 +273,7 @@ MVCC + row-level locks + advisory locks cover every FRS concurrency case without
 | Capability | Status for StarMitra |
 |------------|----------------------|
 | FK/unique/check constraints, MVCC, row locks, advisory locks, `INSERT…ON CONFLICT`, JSONB, partial/composite indexes, CTEs/window functions (ranking math!), transactional DDL | **Required-for-MVP scope** |
-| FTS `tsvector` + `pg_trgm` (powers OD-10 DB-search recommendation), table partitioning, LISTEN/NOTIFY, materialized views (leaderboards/reporting), generated columns | **Optional — adopt when the dependent feature lands** |
+| FTS `tsvector` + `pg_trgm` (powers OD-11 DB-search recommendation), table partitioning, LISTEN/NOTIFY, materialized views (leaderboards/reporting), generated columns | **Optional — adopt when the dependent feature lands** |
 | Logical replication/CDC feeds, multi-region setups, exotic extensions, row-level security for multi-tenant partitioning | **Not adopted without a separate decision** |
 
 ### 9. Alternatives — Explicit Criteria
@@ -288,15 +291,15 @@ MVCC + row-level locks + advisory locks cover every FRS concurrency case without
 | Cost | Free/OSS | Free/OSS | Free/OSS | License $$$ | Costly | Free/managed $ |
 | MVP fit | **Best** | Credible | Credible | Credible (licensing) | Premature | Wrong shape — rejected |
 
-**MySQL/MariaDB** are credible substitutes — StarMitra's model would work — but weaker on JSONB-class config modeling, advanced indexing (partial), window-function ergonomics for ranking, and FTS for OD-10. **SQL Server** is technically capable; licensing makes it unjustified for a startup. **Distributed SQL** answers scale questions StarMitra doesn't have yet. **Document DBs** conflict with the inherently relational FRS §31 model and move integrity into application code.
+**MySQL/MariaDB** are credible substitutes — StarMitra's model would work — but weaker on JSONB-class config modeling, advanced indexing (partial), window-function ergonomics for ranking, and FTS for OD-11. **SQL Server** is technically capable; licensing makes it unjustified for a startup. **Distributed SQL** answers scale questions StarMitra doesn't have yet. **Document DBs** conflict with the inherently relational FRS §31 model and move integrity into application code.
 
 ### 10. Recommendation
 
 **PostgreSQL — recommend ACCEPT.**
 
-- **Advantages:** exact fit for the relational FRS model; strongest constraint/transaction toolkit for the competition pipeline; JSONB covers config-driven entities without a second store; FTS seeds OD-10; free/OSS with the widest managed-service availability; seamless in the accepted Spring Boot stack (HikariCP, Flyway, Testcontainers, Spring Batch).
+- **Advantages:** exact fit for the relational FRS model; strongest constraint/transaction toolkit for the competition pipeline; JSONB covers config-driven entities without a second store; FTS seeds OD-11; free/OSS with the widest managed-service availability; seamless in the accepted Spring Boot stack (HikariCP, Flyway, Testcontainers, Spring Batch).
 - **Trade-offs:** JSONB ≠ schemaless document store (not needed); sharding is manual if ever needed (not needed at MVP); advanced features (partitioning, LISTEN/NOTIFY, CDC) arrive only via separate decisions.
-- **Risks:** (i) over-reliance on a single DB for search/analytics later — mitigated by OD-09/10/12 staging triggers; (ii) heavy reporting queries contending with OLTP — mitigated by read replica + rollups before competition peaks; (iii) migration drift — mitigated by Flyway discipline (accepted) + transactional DDL.
+- **Risks:** (i) over-reliance on a single DB for search/analytics later — mitigated by OD-10/11/13 staging triggers; (ii) heavy reporting queries contending with OLTP — mitigated by read replica + rollups before competition peaks; (iii) migration drift — mitigated by Flyway discipline (accepted) + transactional DDL.
 - **Impact on architecture:** single system of record inside the modular monolith; module-per-schema or module-per-table conventions enforce OD-01 ownership boundaries *within* one database — modules must not reach across each other's tables.
 - **Impact on future extraction:** module-owned tables/schemas make later extraction mechanical (export schema → new service DB); JSONB config entities keep rubric/round evolution inside module ownership; no shared-cache or broker implied — consistent with "no Redis/Kafka without separate decision."
 
@@ -373,7 +376,7 @@ Rubric builder (dynamic criteria, weights, ordering `[FRS §20]`), competition c
 ### 11. Media Upload & Playback `[§10][§16]`
 
 - **Upload:** backend issues pre-signed URL (MEDIA-ARCHITECTURE) → browser PUTs directly to object storage → progress UI; backend never proxies binaries `[FRS §36]`.
-- **Playback:** `<video>`/`<audio>` + HLS where transcoded renditions exist; responsive images via variant URLs; document preview strategy open (OD-07 dependent).
+- **Playback:** `<video>`/`<audio>` + HLS where transcoded renditions exist; responsive images via variant URLs; document preview strategy open (OD-08 dependent).
 - **Secure access:** signed URLs for non-public media; visibility enforced server-side.
 
 ### 12. Accessibility & Responsive Design
@@ -554,8 +557,29 @@ Google Play + Apple App Store; semantic app versioning + build numbers; OTA JS u
 | Context | `[FRS §8]` mobile/email + OTP "or configured authentication mechanism"; secure login/logout; password reset where password auth enabled; optional social login *in future*; consent capture; account states Active/Suspended/Blocked/Deactivated. **Critical:** `TalentSkill ≠ SystemRole` — authN and authZ are separate `[BR-2][FRS §6]`. Judge/Admin surfaces warrant stricter policy (inference). |
 | FRS References | §6 system roles, §8 registration/auth, §30 audit, §36 security NFRs |
 | Options | **A. First-party Spring Security + OTP + JWT/refresh** · **B. Managed identity provider (Cognito/Firebase Auth/Auth0-class)** · **C. Hybrid** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** First-party Spring Security is the MVP authentication architecture. `ADR-006` will formalize after the OD sequence. **Binding guardrails:**
+
+1. First-party Spring Security is the MVP authentication architecture.
+2. OTP is supported as the primary authentication mechanism.
+3. Optional password support remains an **open product decision**.
+4. Short-lived JWT access tokens are used.
+5. Refresh tokens are opaque, server-controlled and persisted.
+6. Refresh token rotation is required.
+7. Refresh-token reuse detection is required.
+8. Server-side session/token revocation must be supported.
+9. Web uses secure HTTP-only cookie transport with appropriate CSRF protection.
+10. React Native uses bearer authentication with platform-secure credential storage.
+11. Admin/Judge use the same authentication architecture.
+12. MFA for Admin/Judge remains a **separate security/product decision**.
+13. WebSocket connections must authenticate and respect session/token revocation.
+14. Social login is **deferred**.
+15. External identity providers are **not required** for MVP.
+16. Authentication, authorization, talent skills and project contribution roles remain separate concepts.
+17. OTP security controls must be explicitly designed before implementation.
+18. No Redis or other infrastructure is implied by this decision.
 
 ### 1. Authentication Requirements `[FRS §8]`
 
@@ -665,11 +689,144 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 4. Session/TTL policies per surface
 5. Managed IdP revisit trigger (scale/cost threshold)
 
-## OD-07 — Media Storage & Processing
+## OD-07 — API Architecture / API Contract Strategy
 
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-07 |
+| Decision | API architecture style and contract strategy for the modular monolith's external API. |
+| Context | 4 client surfaces (web SPA, mobile, judge, admin) consume one backend; API boundaries must mirror OD-01 module boundaries and support future extraction. OD-02 accepted REST/OpenAPI capability at stack level — this OD defines the architecture/conventions. |
+| FRS References | §5 surfaces, §9–13 user/portfolio/media/Connect/rooms, §15–24 competition pipeline, §25 notifications, §30 audit, §36 NFRs |
+| Options | **A. REST + OpenAPI** · **B. GraphQL** · **C. RPC/gRPC** · **D. Hybrid** |
+| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Decision Owner | Product + Technical Review |
+
+### 1. API Architecture Style
+
+**REST + OpenAPI, resource-oriented, module-owned.** Each backend module D1–D15 owns its API surface under a domain namespace (`/api/v1/{domain}/...`). Layering per module: controller → service → repository, with **DTO/entity separation** — entities never serialize to clients; API↔domain mapping is explicit. Cross-module interaction goes through internal contracts (queries/events), never another module's tables — preserving OD-01 extraction seams without becoming services.
+
+### 2. Contract Source of Truth
+
+**Recommendation: contract-in-code → generated canonical spec.** Controllers+DTOs (Bean Validation, springdoc) generate the OpenAPI spec at build; the generated spec is version-controlled and diff-checked in CI (breaking-change detection). This is *contract-first discipline with code-first ergonomics* — honest trade: pure contract-first (spec edited first) is stricter but adds a sync step a small team may not sustain. **Codegen clients:** both web (OD-04) and mobile (OD-05) consume generated TS types — generator tool (openapi-typescript/Orval-class) is an implementation choice, not approved here. Version-controlled spec lives in-repo.
+
+### 3. API Versioning
+
+**Recommendation: `/api/v1/…` URI versioning.** Rationale: mobile upgrade lag (OD-05 store cycles) needs explicit compat windows; URI versioning is visible, debuggable, CDN/proxy-friendly. Rejected for MVP: header/media-type versioning (complexity, less discoverable) and no-versioning (fragile). Deprecation policy: N/N−1 client support window *(inference — product should confirm)*; new major version only for breaking changes.
+
+### 4. Resource & Endpoint Conventions
+
+- Plural nouns, lowercase, hyphen-free (`/users`, `/talent-skills`, `/competition-rounds`)
+- One-level nesting only for true containment: `/competitions/{id}/rounds`, `/submissions/{id}/evaluations` — deeper paths via parent-scoped top-level resources + filters
+- Actions where nouns are insufficient: `POST /competitions/{id}/publish`, `POST /rounds/{id}/close`, `POST /submissions/{id}/submit`, `POST /projects/{id}/members`
+- Identifiers: opaque UUIDs in URLs; no sequence leakage
+- Status codes: 200/201/204, 400 validation, 401 unauthenticated, 403 unauthorized, 404, 409 conflict/state, 422 business-rule, 429 rate-limit, 500
+- Example mapping (not a spec): `/users/{id}/talent-skills`, `/portfolios/{id}/media`, `/competitions/{id}/submissions`, `/projects/{id}/rooms`, `/competitions/{id}/votes`, `/evaluations`, `/rankings?competition=&round=`, `/notifications`
+
+### 5. Error-Response Standard
+
+**Recommendation: RFC 9457 Problem Details** (`application/problem+json`) — `type`, `title`, `status`, `detail`, `instance` + extensions: `code` (stable machine string), `errors[]` (field-level validation), `correlationId`. Standard for all surfaces; documented error catalog per endpoint.
+
+### 6. Pagination
+
+| Collection | Strategy | Justification |
+|------------|----------|---------------|
+| Discovery/feed, talent search, comments, messages, notifications | **Cursor/keyset** | Large, mobile infinite-scroll, stable ordering under inserts; keyset performs well on PostgreSQL |
+| Competitions, submissions, rankings, admin lists | **Offset (page/size)** | Bounded, admin-facing, sortable tables need page-jumps |
+| Rankings | Cursor on rank or offset — either; deterministic ordering + total count | Per-product UX |
+
+Envelope: `{data[], pageInfo{cursor/nextPage}}` vs `{data[], page,size,totalElements}` — per strategy. No assumption of cursor everywhere.
+
+### 7. Filtering / Sorting / Searching
+
+Allowlisted query params per resource (`?skill=&status=&sort=`), validated server-side, **never widening authorization scope** — filters intersect with visibility rules `[FRS §9]`. Search = PostgreSQL FTS/trigram per OD-11 baseline; no dedicated engine implied by this decision. Field selection (`?fields=`): optional, defer unless payload sizes justify.
+
+### 8. Idempotency
+
+| Operation | Mechanism |
+|-----------|-----------|
+| Vote submission `[BR-14]` | **DB unique constraint** + upsert — idempotent by construction |
+| Evaluation submit `[BR-12]` | Unique (judge×submission×round) + state transition |
+| Submission create / media finalize / retried POSTs | **Idempotency-Key header** → key stored in PostgreSQL (`idempotency_keys` table, response replay) |
+| Notification-triggering actions | Same-DB dedup on (event, recipient, window) |
+
+No Redis: keys persist in PostgreSQL — consistent with "no Redis" constraint.
+
+### 9. Concurrency / Optimistic Locking
+
+- **Optimistic locking** (`version` column → `ETag`/`If-Match`) for user-visible updates (profile, submission draft, room settings)
+- **Explicit state transitions** via action endpoints — no direct status-field writes (competition open→vote→evaluate→score→publish `[FRS §15]`)
+- **Transactions + constraints** for single-entity invariants; row-level locks where contention is real (OD-03 guardrail)
+- Admin overrides `[BR-13]`: same-transaction write + audit
+
+### 10. AuthN/AuthZ Integration (OD-06)
+
+Token → principal → permissions from `UserSystemRole` only; resource-scoping rules (judge-assigned-only `[FRS §19]`, room-membership, content visibility) enforced in service layer. **Boundaries preserved:** authN ≠ authZ ≠ TalentSkill ≠ ProjectContributionRole — skills/roles in payloads are data, never permissions.
+
+### 11. Media API Contracts
+
+Contract-level sequence (pipeline unimplemented): `POST /media` (metadata+intent) → `POST /media/{id}/upload-url` (pre-signed) → direct-to-storage PUT → `POST /media/{id}/complete` → `GET /media/{id}` (processing status) → visibility/moderation flags → `DELETE`. Provider-agnostic terms ("storage", "renditions") — no cloud vendor in contract. Consistent with MEDIA-ARCHITECTURE.
+
+### 12. WebSocket Boundary
+
+| Channel | Responsibility |
+|---------|----------------|
+| REST | All CRUD/commands/history: conversations list, send message (also acceptable), attachments metadata, read-marking fallback |
+| WebSocket | Realtime events: `message.new`, `message.delivered`, `message.read`, optional `typing`, notification pushes, live counters (where enabled `[FRS §18]`) |
+
+Handshake authenticated per OD-06 (token at connect); connection principal scoped by authz; reconnect → re-auth + resume via event-cursor (last-event-id); acks for send/delivery/read. Messaging stays an isolated module (OD-01 extraction seam). **No STOMP/Socket.IO/native-WS selection here** — transport choice is a separate decision (OD-09 realtime).
+
+### 13. API Security
+
+Bean Validation on every DTO; DTO-only binding (no mass assignment); CORS allowlist per environment; CSRF on cookie-authenticated mutations (OD-06); server-side rate limiting on auth/vote/upload endpoints (app-level counters — no Redis implied); request/media size limits; no sensitive data in URLs/logs; correlation ID required on responses; audit events for state-changing admin/scoring ops `[FRS §30]`.
+
+### 14. API Observability
+
+Correlation/request ID (accept-or-generate, propagated via MDC), structured JSON logs, latency + status + error metrics per endpoint, business-operation audit events kept **separate** from technical telemetry per OBSERVABILITY-ARCHITECTURE.
+
+### 15. API Documentation
+
+OpenAPI spec + rendered docs (per-surface views), authentication guide, error catalog, example payloads, changelog tied to versioning. Spec is the published contract.
+
+### 16. Testing Strategy
+
+Unit (services/mappers), controller-slice tests (validation/error mapping), integration (Testcontainers vs real PG), **contract tests** (spec conformance + generated-client compatibility), **authZ tests** (role matrix including `TalentSkill ≠ SystemRole` negatives), **concurrency tests** for vote/evaluation/score paths, negative/security tests (mass-assignment, injection, over-fetch).
+
+### 17. Future Extraction Principles
+
+- Module-owned `/api/v1/{domain}` namespaces — no cross-domain path mixing
+- No shared persistence models across module APIs; DTO boundaries everywhere
+- Cross-module reads via internal contracts/events — never direct table access
+- Extraction candidate (e.g., D6 messaging) lifts out with its namespace intact — no consumer-facing change
+
+### 18. Alternatives
+
+| Approach | For | Against | Verdict |
+|----------|-----|---------|---------|
+| **REST + OpenAPI** | Universal clients, cacheable, codegen, mature tooling; matches resource-shaped FRS model | Chatty for composite views (mitigate: aggregated read endpoints) | **Recommended** |
+| **GraphQL** | Flexible queries, one endpoint | AuthZ/caching complexity, N+1 risk, heavier stack, FRS resources are naturally REST-shaped — overkill | Rejected for MVP |
+| **gRPC/RPC** | Efficient internal calls | Browser friction (needs gateway), less discoverable, wrong tool for public API | Rejected — possible internal option only if extraction happens |
+
+### 19. Recommendation Summary
+
+- **API architecture:** REST + OpenAPI, module-owned namespaces under `/api/v1`
+- **Contract:** generated OpenAPI is canonical, version-controlled, CI-diffed; codegen TS clients for web + mobile (tool = implementation choice)
+- **Versioning:** `/api/v1/` URI
+- **Errors:** RFC 9457 Problem Details + `code`/`errors[]`/`correlationId`
+- **Pagination:** cursor/keyset for high-volume feeds; offset for bounded/admin lists
+- **Idempotency:** DB unique constraints first; `Idempotency-Key` header + PG key-store for retried creates
+- **Concurrency:** optimistic `version`/ETag + explicit state-transition endpoints + transactions
+- **Security:** DTO-only binding, validation, CORS/CSRF, rate limits, size limits, audit + correlation IDs
+- **WS boundary:** REST = commands/history; WS = realtime events; protocol choice deferred to OD-09
+- **Key trade-offs:** URI versioning adds maintenance vs invisible versioning; code-first spec risks drift (mitigated by CI diff); split pagination adds convention overhead vs uniformity
+- **Risks:** spec drift, authz leaks via filters (mitigated by authZ tests), versioning discipline decay (mitigated by deprecation policy)
+- **Extraction:** namespace-per-module + DTO boundaries + no shared tables = mechanical later extraction
+
+### Open Questions
+
+1. Client support window (N/N−1?) for mobile API versions — product input
+2. OpenAPI generation: build-time (springdoc) vs spec-first authoring — confirm at implementation
+3. `?fields=` sparse fieldsets needed, or fixed response shapes sufficient?
+4. WS protocol selection deferred to OD-09 (STOMP vs Socket.IO vs native)
 | Decision | Media pipeline: storage, processing, delivery for video/audio/images/documents `[FRS §10]`. |
 | Context | Upload→validate→process(transcode/thumbnail/scan)→publish→CDN delivery with visibility-gated access `[FRS §9][§10]`; moderation hooks `[FRS §26]`; scalable delivery `[FRS §36]`. Largest infrastructure surface of the product. |
 | FRS References | §9 portfolio, §10 media lifecycle, §16 submission media, §26 moderation, §36 scalable storage |
@@ -680,39 +837,39 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Team Impact | A: moderate pipeline code; B: least code; C: dedicated ops attention. |
 | Cost/Complexity | A: medium build, low unit cost. B: low build, high unit cost. C: low unit cost, high ops cost. |
 | Risks | A: provider choice must not leak into domain code (adapter + storage abstraction). B: bill shock under competition traffic spikes. C: pipeline outages block submissions `[FRS §16]` — needs watchdog alerts (OBSERVABILITY §3). |
-| Devin Recommendation | **A** — object storage + CDN + managed transcoding, all behind an adapter interface. Choose the concrete provider with OD-11 (same cloud for egress efficiency). Revisit B only if MVP timeline is extremely tight; avoid C for MVP. |
+| Devin Recommendation | **A** — object storage + CDN + managed transcoding, all behind an adapter interface. Choose the concrete provider with OD-12 (same cloud for egress efficiency). Revisit B only if MVP timeline is extremely tight; avoid C for MVP. |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
 
-## OD-08 — Real-Time Communication
+## OD-09 — Real-Time Communication
 
 | Field | Content |
 |-------|---------|
-| Decision ID | OD-08 |
+| Decision ID | OD-09 |
 | Decision | Transport/architecture for StarMitra Connect messaging `[FRS §12]` and near-real-time surfaces. |
 | Context | **MVP:** 1:1 + group/project conversations, delivery/read status, project-linked threads `[FRS §12]`; notification push optional `[FRS §25]`; live vote counts only where admin-enabled `[FRS §18]`. **Future (P2):** calls, live streaming `[FRS §4.2][§35]`. |
 | FRS References | §12 Connect, §18 vote counts, §25 notifications, §35 priorities |
 | Options | **A. WebSocket in the backend** (Socket.IO-class, in monolith). **B. Managed realtime platform** (Pusher/Ably/Stream Chat/Firebase RTDB-class). **C. Polling/SSE only.** |
 | Advantages | **A:** no vendor cost; fits monolith; full control of events/auth; Socket.IO handles reconnect/fallback; delivery+read receipts straightforward. **B:** zero realtime ops; SDKs handle presence/typing/receipts; some offer moderation. **C:** simplest; no persistent connections; adequate for notifications. |
-| Disadvantages | **A:** you own connection scaling, sticky sessions, heartbeat/reconnect edge cases; horizontal scaling needs adapter (e.g., Redis pub/sub — interacts with OD-09). **B:** per-connection/message pricing at scale; chat UX lock-in; less control. **C:** chat latency perceived as "not real-time"; read receipts awkward; mobile battery with polling. |
+| Disadvantages | **A:** you own connection scaling, sticky sessions, heartbeat/reconnect edge cases; horizontal scaling needs adapter (e.g., Redis pub/sub — interacts with OD-10). **B:** per-connection/message pricing at scale; chat UX lock-in; less control. **C:** chat latency perceived as "not real-time"; read receipts awkward; mobile battery with polling. |
 | StarMitra Fit | **A for MVP:** chat is core `[PD-07]`; WS module isolated in monolith, extractable later (OD-01 hybrid path). B justified only if ops capacity is near zero. C fails UX expectation for chat. **Future capability:** live video/calls explicitly P2 — no platform for it now. |
 | Team Impact | A: one WS module + adapter complexity when multi-instance. B: least ops. C: none. |
 | Cost/Complexity | A low-medium; B low build/high recurring; C low. |
-| Risks | A: connection-scaling pain later → mitigate: isolate messaging module behind clean interface; add Redis adapter only when multi-instance (ties to OD-09 trigger). B: lock-in rewrites. |
+| Risks | A: connection-scaling pain later → mitigate: isolate messaging module behind clean interface; add Redis adapter only when multi-instance (ties to OD-10 trigger). B: lock-in rewrites. |
 | Devin Recommendation | **A — Socket.IO-class WebSocket inside the backend** for MVP chat + optional live counters; **defer** any managed realtime/broker platform until multi-instance scaling or feature needs (presence, typing indicators at scale) justify it. Messaging stays an isolated module for future extraction (OD-01). |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
 
-## OD-09 — Cache
+## OD-10 — Cache
 
 | Field | Content |
 |-------|---------|
-| Decision ID | OD-09 |
+| Decision ID | OD-10 |
 | Decision | Does StarMitra need a dedicated cache (e.g., Redis) in MVP? |
 | Context | Candidate uses: session storage, rate limiting, competition config reads, leaderboards, hot profiles, temporary data. FRS demands correctness for votes/scores `[BR-14][FRS §22]` — caching must never corrupt results. |
 | FRS References | §18 voting, §22 scoring, §24 leaderboards, §36 NFRs |
 | Options | **A. No dedicated cache for MVP** (DB + app-level memoization). **B. Redis/Valkey from day one** for rate limiting + sessions + hot reads. **C. Managed cache** (ElastiCache/MemoryDB/Upstash-class). |
-| Advantages | **A:** zero extra infra; DB is single source of truth; no invalidation bugs; simplest. **B:** fast rate-limit counters, ephemeral locks, leaderboard ZSETs, session store, WS adapter (OD-08) when multi-instance. **C:** same as B without ops. |
+| Advantages | **A:** zero extra infra; DB is single source of truth; no invalidation bugs; simplest. **B:** fast rate-limit counters, ephemeral locks, leaderboard ZSETs, session store, WS adapter (OD-09) when multi-instance. **C:** same as B without ops. |
 | Disadvantages | **A:** rate limiting lives in app memory (per-instance inaccuracy) or DB writes; hot reads hit DB. **B:** another moving part to run/secure/back-up; invalidation discipline needed; premature if traffic is modest. **C:** same + vendor cost. |
 | StarMitra Fit | **A for MVP:** no FRS requirement demands sub-ms reads; competition config is small/hot and memoizable in-process; vote/score correctness favors direct DB writes. **B earns entry when:** (i) multi-instance deploy makes in-memory rate-limiting/WS broadcast insufficient, or (ii) leaderboard/hot-read load is measured, or (iii) job queue needs Redis-class primitives (BullMQ does!). Note: if OD-02 adopts BullMQ, Redis arrives anyway — making B nearly free. |
 | Team Impact | A: none. B/C: small ops/monitoring addition. |
@@ -722,11 +879,11 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
 
-## OD-10 — Search
+## OD-11 — Search
 
 | Field | Content |
 |-------|---------|
-| Decision ID | OD-10 |
+| Decision ID | OD-11 |
 | Decision | Search capability approach for MVP `[FRS §11]`. |
 | Context | Search across talent names, skills, content, projects, competitions + category/skill and content-type filters `[FRS §11]`; advanced search is P1 `[FRS §35]`. |
 | FRS References | §11 feed/discovery/search, §35 P1 advanced search |
@@ -741,13 +898,13 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
 
-## OD-11 — Cloud / Deployment
+## OD-12 — Cloud / Deployment
 
 | Field | Content |
 |-------|---------|
-| Decision ID | OD-11 |
+| Decision ID | OD-12 |
 | Decision | Cloud provider + deployment architecture for dev/testing/UAT/staging/production. |
-| Context | Needs: containerized app hosting, managed PostgreSQL (OD-03), object storage+CDN+transcode (OD-07), CI/CD, secrets, monitoring, backups/DR, scaling, cost control. FRS requires backup/recovery `[FRS §36]`. |
+| Context | Needs: containerized app hosting, managed PostgreSQL (OD-03), object storage+CDN+transcode (OD-08), CI/CD, secrets, monitoring, backups/DR, scaling, cost control. FRS requires backup/recovery `[FRS §36]`. |
 | FRS References | §36 NFRs (scale, backup, observability) |
 | Options | **A. Major cloud, managed services** (AWS / GCP / Azure — compute via ECS/Cloud Run/App Service-class). **B. PaaS** (Render/Fly.io/Railway/Heroku-class). **C. VPS/self-managed** (Hetzner/DigitalOcean-class + own Postgres/media). |
 | Advantages | **A:** every needed managed primitive exists; scales with product; media/CDN/transcode ecosystem mature; enterprise-ready path; credits for startups. **B:** fastest deploys, minimal ops, predictable bills early. **C:** cheapest raw compute; full control. |
@@ -760,11 +917,11 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
 
-## OD-12 — Analytics
+## OD-13 — Analytics
 
 | Field | Content |
 |-------|---------|
-| Decision ID | OD-12 |
+| Decision ID | OD-13 |
 | Decision | Analytics architecture: what runs on the transactional system vs dedicated analytics for MVP. |
 | Context | `[FRS §29]` needs: registered users, active creators, skill popularity, uploads/engagement, competition participation, voting activity, judge completion, per-criterion score averages, round progression, collaboration stats, top-talent metrics. Three distinct layers must not be conflated. |
 | FRS References | §29 reporting/analytics, §27 admin dashboards, §30 audit |
@@ -785,14 +942,14 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 
 | # | Question | Blocks |
 |---|----------|--------|
-| Q1 | Existing cloud commitments/credits (AWS/GCP/Azure/other)? | OD-11 provider selection, OD-07 provider pick |
-| Q2 | Expected MVP scale: users, concurrent voters during competition windows, media upload volume? | OD-01, OD-08, OD-09, OD-11 sizing |
+| Q1 | Existing cloud commitments/credits (AWS/GCP/Azure/other)? | OD-12 provider selection, OD-08 provider pick |
+| Q2 | Expected MVP scale: users, concurrent voters during competition windows, media upload volume? | OD-01, OD-09, OD-10, OD-12 sizing |
 | Q3 | Team skills today: TypeScript? Python? Java? | OD-02, OD-04, OD-05 |
 | Q4 | iOS and Android both required at MVP, or Android-first? | OD-05 scope |
 | Q5 | SMS/OTP volume expectations + budget (India-primary SMS aggregators vs IdP bundled OTP)? | OD-06 |
-| Q6 | Media budget posture: managed platform premium acceptable vs engineering time? | OD-07 |
-| Q7 | Any compliance/residency constraints on user data or media? | OD-06, OD-07, OD-11 |
-| Q8 | Product analytics appetite — is funnel/retention insight wanted at MVP or later? | OD-12 |
+| Q6 | Media budget posture: managed platform premium acceptable vs engineering time? | OD-08 |
+| Q7 | Any compliance/residency constraints on user data or media? | OD-06, OD-08, OD-12 |
+| Q8 | Product analytics appetite — is funnel/retention insight wanted at MVP or later? | OD-13 |
 
 ## Next Step
 

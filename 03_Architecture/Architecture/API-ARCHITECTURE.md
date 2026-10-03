@@ -1,6 +1,6 @@
 # StarMitra — API Architecture
 
-**Parent:** [Architecture Baseline v1.0](STARMITRA-ARCHITECTURE-BASELINE-v1.0.md) | **Status:** Draft for review
+**Parent:** [Architecture Baseline v1.0](STARMITRA-ARCHITECTURE-BASELINE-v1.0.md) | **Status:** Draft for review | **Decision status:** under review as **OD-07** in the [Decision Register](../ADR/ARCHITECTURE-DECISION-REGISTER.md)
 
 ## 1. Style & Contracts
 
