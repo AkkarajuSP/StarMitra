@@ -16,7 +16,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 08 | Portfolio | [MODULE-PORTFOLIO.md](MODULE-PORTFOLIO.md) | Designed |
 | 09 | Competitions | [MODULE-COMPETITIONS.md](MODULE-COMPETITIONS.md) | Designed |
 | 10 | Submissions | [MODULE-SUBMISSIONS.md](MODULE-SUBMISSIONS.md) | Designed |
-| 11 | Audience Voting | — | Pending |
+| 11 | Audience Voting | [MODULE-AUDIENCE-VOTING.md](MODULE-AUDIENCE-VOTING.md) | Designed |
 | 12 | Judge Management | — | Pending |
 | 13 | Judge Rubrics | — | Pending |
 | 14 | Scoring & Ranking | — | Pending |
