@@ -29,7 +29,7 @@ Source Vector (SVG/EPS):  NOT PROVIDED
 
 | File | Location | Observation | Status |
 |------|----------|-------------|--------|
-| `SMLogo.png` (1797×1681) | `OneDrive\Desktop\New folder\` | Alternate lockup: pink `#EC4899` tagline and simplified emblem without star trail | **NOT REGISTERED** — not supplied as a brand asset; register on owner confirmation |
+| `SMLogo.png` (1797×1681) | `OneDrive\Desktop\New folder\` | Alternate lockup: pink `#EC4899` tagline and simplified emblem without star trail | **OBSERVED — NOT REGISTERED AS OFFICIAL** — excluded from the official asset set; its `#EC4899` must not enter the StarMitra brand palette |
 
 ## Requested / needed assets — MISSING
 
