@@ -262,20 +262,25 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-12. *(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
 
-## 21. Proposed ADRs
+## 21. Architecture Decision Records
 
-To be created in `03_Architecture/ADR/` upon review (numbered when drafted):
+Formal ADRs — `03_Architecture/ADR/` (OD-01…OD-13 → ADR-001…ADR-013):
 
-| # | Subject | Status |
-|---|---------|--------|
-| ADR-001 | Architecture style — modular monolith | Accepted — pending formalization |
-| ADR-002 | Backend platform — Java 17+ / Spring Boot 3.x | Accepted — pending formalization |
-| ADR-TBD-3 | API style/versioning/authn scheme | Proposed |
-| ADR-TBD-4 | Media pipeline (upload → process → deliver) | Proposed |
-| ADR-TBD-5 | Notification event-driven design | Proposed |
-| ADR-TBD-6 | Audit log implementation approach | Proposed |
-| ADR-TBD-7 | Mobile client technology | Proposed |
-| ADR-TBD-8 | Web client technology (public/admin/judge) | Proposed |
+| ADR | Decision | Status |
+|-----|----------|--------|
+| [ADR-001](../ADR/ADR-001-modular-monolith.md) | Architecture style — modular monolith | Accepted |
+| [ADR-002](../ADR/ADR-002-backend-java-spring-boot.md) | Backend — Java 17+ / Spring Boot 3.x | Accepted |
+| [ADR-003](../ADR/ADR-003-postgresql.md) | Primary database — PostgreSQL | Accepted |
+| [ADR-004](../ADR/ADR-004-web-frontend-react-vite.md) | Web frontend — React + TS + Vite | Accepted |
+| [ADR-005](../ADR/ADR-005-mobile-react-native-expo.md) | Mobile — React Native + Expo | Accepted |
+| [ADR-006](../ADR/ADR-006-authentication-session.md) | Authentication/session | Accepted |
+| [ADR-007](../ADR/ADR-007-rest-openapi-api-architecture.md) | API — REST + OpenAPI | Accepted |
+| [ADR-008](../ADR/ADR-008-media-object-storage.md) | Media — object storage pipeline | Accepted |
+| [ADR-009](../ADR/ADR-009-websocket-realtime.md) | Realtime — WebSocket in monolith | Accepted |
+| [ADR-010](../ADR/ADR-010-cache-strategy.md) | Cache — no distributed cache at MVP | Accepted |
+| [ADR-011](../ADR/ADR-011-postgresql-search.md) | Search — PostgreSQL-native | Accepted |
+| [ADR-012](../ADR/ADR-012-cloud-deployment.md) | Cloud/deployment — managed platform | Accepted in principle (provider open) |
+| [ADR-013](../ADR/ADR-013-postgresql-analytics.md) | Analytics — PG operational reporting | Accepted in principle |
 
 ## 22. FRS Traceability
 

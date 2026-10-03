@@ -32,19 +32,19 @@ Engineering                   → Devin
 
 | ID | Topic | Recommendation | Status |
 |----|-------|----------------|--------|
-| OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
-| OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
-| OD-12 | Cloud/deployment | **Managed container platform + managed PG + object storage + CDN; no K8s for MVP; provider OPEN** | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
-| OD-13 | Analytics | **PostgreSQL-based operational reporting + read models; event model deferred; no warehouse/third-party** | PROPOSED — PENDING REVIEW |
+| OD-01 | Architecture style | Modular monolith | **ACCEPTED — [ADR-001](ADR-001-modular-monolith.md)** |
+| OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — [ADR-002](ADR-002-backend-java-spring-boot.md)** |
+| OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — [ADR-003](ADR-003-postgresql.md)** |
+| OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — [ADR-004](ADR-004-web-frontend-react-vite.md)** |
+| OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — [ADR-005](ADR-005-mobile-react-native-expo.md)** |
+| OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — [ADR-006](ADR-006-authentication-session.md)** |
+| OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — [ADR-007](ADR-007-rest-openapi-api-architecture.md)** |
+| OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — [ADR-008](ADR-008-media-object-storage.md)** |
+| OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — [ADR-009](ADR-009-websocket-realtime.md)** |
+| OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — [ADR-010](ADR-010-cache-strategy.md)** |
+| OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters); dedicated engine deferred w/ triggers** | **ACCEPTED — [ADR-011](ADR-011-postgresql-search.md)** |
+| OD-12 | Cloud/deployment | **Managed container platform + managed PG + object storage + CDN; no K8s for MVP; provider OPEN** | **ACCEPTED — [ADR-012](ADR-012-cloud-deployment.md)** |
+| OD-13 | Analytics | **PostgreSQL-based operational reporting + read models; event model deferred; no warehouse/third-party** | **ACCEPTED — [ADR-013](ADR-013-postgresql-analytics.md)** |
 
 ---
 
@@ -64,7 +64,7 @@ Engineering                   → Devin
 | Cost/Complexity | A lowest; C low-moderate; B highest (infra + ops + dev tooling). |
 | Risks | A: boundary erosion → big-ball-of-mud (mitigate: module lint rules, no cross-module table access, review). B: premature distribution → missed MVP, integrity bugs across services. C: extraction never happens / happens messily. |
 | Devin Recommendation | **A — Modular monolith** for MVP, designed for C: module boundaries drawn so media worker/messaging can extract to satellite services when load or team size justifies. Consistent with baseline §5. |
-| Status | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
 **Review direction (first review, recorded verbatim):** StarMitra will use a modular monolith for MVP with explicit bounded domain/module boundaries so individual domains can be extracted into independently deployable services later if actual scale, reliability, organizational, or domain requirements justify it. The 15-domain structure from the Architecture Baseline is maintained.
@@ -80,7 +80,7 @@ This decision does NOT mean: one large unstructured codebase · shared unrestric
 | Context | 14+ interdependent domains, config-driven engines (rubrics, rounds, scoring weights), strict transactional integrity for the competition pipeline (submission → vote → evaluation → scoring → ranking → qualification → audit), real-time chat, media orchestration, 4 client surfaces. |
 | FRS References | §6 roles, §10 media, §12 Connect, §15–24 competition pipeline, §30 audit, §36 NFRs, §38 guidance |
 | Options | **A. Java 17+ / Spring Boot 3.x** · **B. Node.js + TypeScript + NestJS** · **C. Python + FastAPI** *(option set constrained by review; prior wider list superseded)* |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
 **Review outcome (accepted):** Java 17+ / Spring Boot 3.x is the approved backend direction. Approved constraints and non-approvals below; `ADR-002` will formalize after the OD review sequence completes.
@@ -173,10 +173,10 @@ Service Mesh
 | Context | FRS §31 logical model is inherently relational (M:N spine: User↔TalentSkill, User↔SystemRole, Project↔Member↔ContributionRole); strict consistency for votes/evaluations/scores `[FRS §18–24][§30][§36]`; config-driven entities (rubric versions, round configs) `[FRS §15][§20]`; admin reporting `[FRS §29]`; audit + backup/recovery `[FRS §30][§36]`. **Note:** PostgreSQL already sits inside the OD-02 accepted backend baseline — this OD formally evaluates/approves it as the primary datastore. |
 | FRS References | §10 content lifecycle, §15–24 competition pipeline, §30 audit, §31 data model, §36 NFRs |
 | Options | **A. PostgreSQL** · **B. MySQL 8** · **C. MariaDB** · **D. SQL Server** · **E. Distributed SQL (CockroachDB/Yugabyte)** · **F. Non-relational (MongoDB-class) — evaluated and rejected for the transactional core** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** PostgreSQL is StarMitra's primary transactional relational datastore. `ADR-003` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** PostgreSQL is StarMitra's primary transactional relational datastore. `ADR-003` formalized. **Binding guardrails:**
 
 1. Core business entities remain **relational and strongly typed**.
 2. **JSONB selectively** — only for genuinely configuration-driven/flexible structures (rubric criteria, round configs, eligibility rules); never as a substitute for typed core entities.
@@ -312,10 +312,10 @@ MVCC + row-level locks + advisory locks cover every FRS concurrency case without
 | Context | Four web surfaces with different characters: public discovery (`[FRS §11]`, SEO-relevant — *inference, not FRS requirement*), authenticated creator/audience app, two internal portals (admin `[§27]`, judge `[§28]`). Brand baseline exists (verified palette, PROPOSED Poppins/Inter); accessibility + mobile-first are FRS NFRs `[§36]`. Backend is Java/Spring Boot REST/OpenAPI + WebSocket (OD-02). |
 | FRS References | §5 channels, §9 profile, §10 media, §11 discovery, §12 Connect, §13 rooms, §15–24 competition flows, §26 moderation, §27–28 portals, §34 screens, §36 NFRs |
 | Options | **A. React + TypeScript + Vite (SPA, all surfaces)** · **B. React + TypeScript + Next.js (SSR-capable, all surfaces)** · **C. Angular** · **D. Vue/Nuxt** · **E. SvelteKit** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** React + TypeScript + Vite SPA is the approved web frontend baseline. `ADR-004` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** React + TypeScript + Vite SPA is the approved web frontend baseline. `ADR-004` formalized. **Binding guardrails:**
 
 1. React + TypeScript + Vite is the approved web frontend baseline.
 2. **One** web application/codebase serves public, authenticated app, judge and admin experiences.
@@ -439,10 +439,10 @@ Component-driven design system implementing the brand tokens; domain-mirrored fe
 | Context | `[FRS §5]` names the **Mobile App** as the primary channel for Audience and Creators: "create, upload, discover, engage, communicate, participate." FRS does **not** specify mobile implementation details — all technology evaluation below is architecture recommendation/inference. |
 | FRS References | §5 channels, §9–10 profile/portfolio/media, §11 discovery, §12 Connect, §13 rooms, §15–18 competitions/submissions/voting, §25 notifications, §26 moderation/reporting, §35 priorities |
 | Options | **A. React Native + TypeScript (+Expo)** · **B. Flutter/Dart** · **C. Native (Kotlin + Swift)** · **D. Responsive web only / PWA** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** React Native + TypeScript + Expo is the approved mobile baseline. `ADR-005` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** React Native + TypeScript + Expo is the approved mobile baseline. `ADR-005` formalized. **Binding guardrails:**
 
 1. React Native + TypeScript + Expo is the approved mobile baseline.
 2. **MVP mobile scope = Creator + Audience.**
@@ -557,10 +557,10 @@ Google Play + Apple App Store; semantic app versioning + build numbers; OTA JS u
 | Context | `[FRS §8]` mobile/email + OTP "or configured authentication mechanism"; secure login/logout; password reset where password auth enabled; optional social login *in future*; consent capture; account states Active/Suspended/Blocked/Deactivated. **Critical:** `TalentSkill ≠ SystemRole` — authN and authZ are separate `[BR-2][FRS §6]`. Judge/Admin surfaces warrant stricter policy (inference). |
 | FRS References | §6 system roles, §8 registration/auth, §30 audit, §36 security NFRs |
 | Options | **A. First-party Spring Security + OTP + JWT/refresh** · **B. Managed identity provider (Cognito/Firebase Auth/Auth0-class)** · **C. Hybrid** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** First-party Spring Security is the MVP authentication architecture. `ADR-006` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** First-party Spring Security is the MVP authentication architecture. `ADR-006` formalized. **Binding guardrails:**
 
 1. First-party Spring Security is the MVP authentication architecture.
 2. OTP is supported as the primary authentication mechanism.
@@ -698,10 +698,10 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Context | 4 client surfaces (web SPA, mobile, judge, admin) consume one backend; API boundaries must mirror OD-01 module boundaries and support future extraction. OD-02 accepted REST/OpenAPI capability at stack level — this OD defines the architecture/conventions. |
 | FRS References | §5 surfaces, §9–13 user/portfolio/media/Connect/rooms, §15–24 competition pipeline, §25 notifications, §30 audit, §36 NFRs |
 | Options | **A. REST + OpenAPI** · **B. GraphQL** · **C. RPC/gRPC** · **D. Hybrid** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** REST + OpenAPI is the approved external API architecture. `ADR-007` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** REST + OpenAPI is the approved external API architecture. `ADR-007` formalized. **Binding guardrails:**
 
 1. REST is the primary external API style.
 2. OpenAPI is the canonical version-controlled API contract.
@@ -860,10 +860,10 @@ Unit (services/mappers), controller-slice tests (validation/error mapping), inte
 | Context | Media powers profile/portfolio `[§9]`, discovery `[§11]`, rooms `[§13]`, submissions `[§16]` and Connect `[§12]`; upload/publish lifecycle `[FRS §10]`; moderation `[§26]`; scalable storage required `[FRS §36]`. Largest infrastructure surface of the product. **FRS names no provider — all storage/delivery choices below are architecture recommendations.** |
 | FRS References | §9, §10, §12, §13, §16, §26, §36 |
 | Options | **A. Object storage + async processing + CDN delivery (provider-neutral interfaces)** · **B. All-in-one media platform (Cloudinary/Mux-class)** · **C. Self-managed pipeline (object store + ffmpeg workers)** · **D. DB BLOB storage** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** Option A is the approved media architecture. `ADR-008` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** Option A is the approved media architecture. `ADR-008` formalized. **Binding guardrails:**
 
 1. Object storage is the primary binary media storage architecture.
 2. PostgreSQL stores durable media metadata and relationships — **not** large media binaries.
@@ -1005,10 +1005,10 @@ Media module isolated behind storage/processing adapters — extraction = lift m
 | Context | FRS §12 requires: 1:1 + group/project conversations, text + media attachments, timestamps, delivery + read status, project-linked conversations, notifications integration, report/block. **Future (out of MVP):** live video/audio, calls, live streaming, realtime collaborative editing `[FRS §4.2][§35]`. |
 | FRS References | §12 Connect, §18 live vote counts (optional), §25 notifications, §35 priorities |
 | Options | **A. WebSocket in the Spring Boot backend (isolated module)** · **B. Managed realtime platform (Pusher/Ably/Stream Chat-class)** · **C. SSE/long-polling only** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** WebSocket in the Spring Boot monolith is the approved realtime architecture. `ADR-009` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** WebSocket in the Spring Boot monolith is the approved realtime architecture. `ADR-009` formalized. **Binding guardrails:**
 
 1. WebSocket is the approved realtime transport capability.
 2. Realtime messaging remains inside the Spring Boot modular monolith for MVP.
@@ -1138,10 +1138,10 @@ Rejected: managed realtime platform (cost/lock-in), SSE/polling (insufficient), 
 | Context | FRS demands correctness for votes/evaluations/scores `[BR-14][FRS §22]` — caching must never corrupt authoritative state. No FRS requirement mandates sub-ms reads or shared caching. OD-09 did not approve Redis; this OD decides whether any cache is needed at all. |
 | FRS References | §18 voting, §20 rubrics, §22 scoring, §24 leaderboards, §36 NFRs |
 | Options | **A. No distributed cache — in-process cache for hot reference data only** · **B. Redis/Valkey** · **C. Managed cache (ElastiCache-class)** |
-| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted):** No distributed cache for MVP. `ADR-010` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted):** No distributed cache for MVP. `ADR-010` formalized. **Binding guardrails:**
 
 1. No distributed cache is required for MVP.
 2. PostgreSQL remains the authoritative source of truth.
@@ -1252,10 +1252,10 @@ Each trigger is a separate decision — Redis is **not** approved by this OD.
 | Context | `[FRS §11]` requires talent search by name/skill, feed/discovery, "advanced search by skills/categories" as P1 `[FRS §35]`; genre/category popularity in reports `[§29]`. Elasticsearch/OpenSearch NOT pre-approved. |
 | FRS References | §11 discovery/feed/search, §35 P1 advanced search, §29 analytics |
 | Options | **A. PostgreSQL-native search** (FTS + trigram + relational filters) · **B. Dedicated engine** (Elasticsearch/OpenSearch/Meilisearch-class) · **C. Managed search service** (Algolia-class) |
-| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted in principle):** PostgreSQL-native search for MVP. `ADR-011` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted in principle):** PostgreSQL-native search for MVP. `ADR-011` formalized. **Binding guardrails:**
 
 1. PostgreSQL remains authoritative.
 2. PostgreSQL FTS (`tsvector`/`tsquery` + GIN) and `pg_trgm` are used only where justified.
@@ -1389,10 +1389,10 @@ Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-li
 | Context | All prior decisions shape this: OD-01 monolith, OD-02 Spring Boot, OD-03 PostgreSQL, OD-04 Vite SPA, OD-05 RN+Expo, OD-06 auth, OD-07 REST API, OD-08 media (provider-neutral), OD-09 WS (single-instance MVP), OD-10 no distributed cache, OD-11 PG-native search. FRS requires backup/recovery + security `[§30][§36]`. **FRS names no cloud provider — provider choice is deferred pending Product Owner input.** |
 | FRS References | §5 channels, §36 NFRs (scale, availability, backup, observability), §30 audit |
 | Options | **A. Major cloud, managed services** (AWS/GCP/Azure — container platform + managed PG + object storage + CDN) · **B. PaaS** (Render/Fly.io/Railway-class) · **C. VPS/self-managed** (own Docker+PG) |
-| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
-**Review outcome (accepted in principle, post-refinement):** Option A is the approved deployment *architecture* — managed container platform + Spring Boot modular monolith + managed PostgreSQL + object storage + CDN, single-region MVP, no Kubernetes. `ADR-012` will formalize after the OD sequence. **Binding guardrails:**
+**Review outcome (accepted in principle, post-refinement):** Option A is the approved deployment *architecture* — managed container platform + Spring Boot modular monolith + managed PostgreSQL + object storage + CDN, single-region MVP, no Kubernetes. `ADR-012` formalized. **Binding guardrails:**
 
 1. Deployment architecture is provider-independent — **cloud provider selection remains OPEN** (no AWS/Azure/GCP lock-in in this decision).
 2. **Kubernetes is not approved** — deferred to documented triggers (§18). No Redis/Kafka/RabbitMQ/ES/OS/service mesh implied.
@@ -1553,7 +1553,7 @@ TLS everywhere (terminated at LB/CDN); private subnet for DB (no public exposure
 | Context | `[FRS §29]` requires admin analytics + reporting dashboards; `[FRS §30]` audit is separate from analytics. No FRS requirement mandates a warehouse, event streaming, or third-party analytics platform. |
 | FRS References | §27 admin dashboards, §29 reporting/analytics, §30 audit, §36 observability |
 | Options | **A. PostgreSQL operational reporting** (queries + read models/materialized views) · **B. + first-party event capture (DB-persisted)** · **C. Third-party analytics platform (PostHog/Mixpanel/GA-class)** · **D. Warehouse/data platform** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED** — formalized as an ADR in this directory |
 | Decision Owner | Product + Technical Review |
 
 ### 1. FRS Analytics Requirements
