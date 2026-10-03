@@ -236,6 +236,7 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** — one codebase, route-group surfaces (public/app/judge/admin); backend authZ authoritative; mobile-first mandatory; SEO/SSR open sub-decision; specific libraries not auto-approved |
 | OD-05 | Mobile | **React Native + TypeScript + Expo** — creator/audience scope only; admin/judge stay web; no UI reuse assumed; platform sequencing, push provider, OTA tooling, native modules = separate decisions |
 | OD-06 | Authentication/session | **First-party Spring Security** — OTP primary, JWT access + opaque persisted refresh (rotation + reuse detection + revocation); web=httpOnly cookies+CSRF, mobile=bearer+secure enclave; unified mechanism; social login/IdP deferred; no Redis implied |
+| OD-07 | API architecture | **REST + OpenAPI** — `/api/v1/{domain}` module-owned namespaces; DTO boundary; RFC 9457 errors; cursor+offset pagination; constraint-first idempotency; provider-agnostic media contracts; REST=commands, WS=events |
 
 ### Future Infrastructure Decisions — NOT approved
 
@@ -247,7 +248,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-07 | API architecture/contract strategy — detailed review completed; formal decision pending | API design |
+| OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
 | OD-08 | Media storage + CDN + transcoding providers | D3 implementation |
 | OD-09 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
 | OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |

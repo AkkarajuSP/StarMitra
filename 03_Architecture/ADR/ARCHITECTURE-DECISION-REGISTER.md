@@ -38,7 +38,7 @@ Engineering                   → Devin
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-07 | API architecture/contract | REST + OpenAPI contract-first-lite, `/api/v1` versioning, RFC 9457 errors, cursor/offset split pagination | PROPOSED — PENDING REVIEW |
+| OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-08 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
 | OD-09 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
 | OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
@@ -698,8 +698,31 @@ ProjectContributionRole → "in what capacity on THIS project" — context, zero
 | Context | 4 client surfaces (web SPA, mobile, judge, admin) consume one backend; API boundaries must mirror OD-01 module boundaries and support future extraction. OD-02 accepted REST/OpenAPI capability at stack level — this OD defines the architecture/conventions. |
 | FRS References | §5 surfaces, §9–13 user/portfolio/media/Connect/rooms, §15–24 competition pipeline, §25 notifications, §30 audit, §36 NFRs |
 | Options | **A. REST + OpenAPI** · **B. GraphQL** · **C. RPC/gRPC** · **D. Hybrid** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** REST + OpenAPI is the approved external API architecture. `ADR-007` will formalize after the OD sequence. **Binding guardrails:**
+
+1. REST is the primary external API style.
+2. OpenAPI is the canonical version-controlled API contract.
+3. API namespaces use `/api/v1/{domain}`.
+4. APIs are owned by their respective modular-monolith domains.
+5. DTOs form the API boundary; persistence entities are never exposed directly.
+6. RFC 9457 Problem Details is the standard error model.
+7. Correlation IDs are supported across API operations.
+8. Cursor/keyset pagination is used where appropriate for large/unbounded collections.
+9. Offset pagination is available for appropriate bounded/admin collections.
+10. Database constraints are preferred for idempotency where possible.
+11. Idempotency-Key may be used for retry-sensitive operations where justified.
+12. PostgreSQL may persist idempotency records; Redis is not implied.
+13. Concurrency uses appropriate combinations of transactions, constraints, optimistic locking/versioning and explicit state transitions.
+14. Media APIs remain storage-provider agnostic.
+15. REST handles commands/history; WebSocket handles realtime events.
+16. WebSocket protocol selection is deferred to OD-09.
+17. API authorization is based on system roles and domain authorization rules; talent skills do not grant permissions.
+18. Module boundaries must prevent direct cross-module persistence access.
+19. GraphQL and gRPC are not selected as the primary external API.
+20. API design must preserve future extraction capability without implementing microservices now.
 
 ### 1. API Architecture Style
 
