@@ -39,7 +39,7 @@ Engineering                   → Devin
 | OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-08 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
+| OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN delivery — provider-neutral** | PROPOSED — PENDING REVIEW |
 | OD-09 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
 | OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
@@ -850,19 +850,128 @@ Unit (services/mappers), controller-slice tests (validation/error mapping), inte
 2. OpenAPI generation: build-time (springdoc) vs spec-first authoring — confirm at implementation
 3. `?fields=` sparse fieldsets needed, or fixed response shapes sufficient?
 4. WS protocol selection deferred to OD-09 (STOMP vs Socket.IO vs native)
-| Decision | Media pipeline: storage, processing, delivery for video/audio/images/documents `[FRS §10]`. |
-| Context | Upload→validate→process(transcode/thumbnail/scan)→publish→CDN delivery with visibility-gated access `[FRS §9][§10]`; moderation hooks `[FRS §26]`; scalable delivery `[FRS §36]`. Largest infrastructure surface of the product. |
-| FRS References | §9 portfolio, §10 media lifecycle, §16 submission media, §26 moderation, §36 scalable storage |
-| Options | **A. Cloud object storage + CDN + managed transcoding** (S3/GCS+CDN + MediaConvert/Transcoder-class, behind adapter). **B. All-in-one media platform** (Cloudinary/Mux-class). **C. Self-managed pipeline** (object store + ffmpeg workers). |
-| Advantages | **A:** best cost-control at scale; composable; keeps media-agnostic core; signed-URL delivery fits visibility model. **B:** fastest time-to-market (upload→delivery solved incl. adaptive streaming, thumbnails, basic moderation); excellent DX. **C:** max control, lowest unit cost at volume, no vendor premium. |
-| Disadvantages | **A:** you assemble transcode/scan/orchestration — moderate build effort. **B:** pricing scales steeply with bandwidth/minutes — dangerous for a video-heavy talent platform; lock-in. **C:** you own ffmpeg ops, scaling, failures, format edge cases — real ops burden for small team. |
-| StarMitra Fit | **A:** matches MEDIA-ARCHITECTURE design; video is core content so per-minute platform pricing (B) is risky long-term; C is honest about ops cost. **B:** acceptable for earliest MVP if speed dominates and caps are set. |
-| Team Impact | A: moderate pipeline code; B: least code; C: dedicated ops attention. |
-| Cost/Complexity | A: medium build, low unit cost. B: low build, high unit cost. C: low unit cost, high ops cost. |
-| Risks | A: provider choice must not leak into domain code (adapter + storage abstraction). B: bill shock under competition traffic spikes. C: pipeline outages block submissions `[FRS §16]` — needs watchdog alerts (OBSERVABILITY §3). |
-| Devin Recommendation | **A** — object storage + CDN + managed transcoding, all behind an adapter interface. Choose the concrete provider with OD-12 (same cloud for egress efficiency). Revisit B only if MVP timeline is extremely tight; avoid C for MVP. |
+
+## OD-08 — Media Storage & Processing
+
+| Field | Content |
+|-------|---------|
+| Decision ID | OD-08 |
+| Decision | Media architecture: storage, upload, processing, delivery for video/audio/image/document `[FRS §10]` — provider-neutral. |
+| Context | Media powers profile/portfolio `[§9]`, discovery `[§11]`, rooms `[§13]`, submissions `[§16]` and Connect `[§12]`; upload/publish lifecycle `[FRS §10]`; moderation `[§26]`; scalable storage required `[FRS §36]`. Largest infrastructure surface of the product. **FRS names no provider — all storage/delivery choices below are architecture recommendations.** |
+| FRS References | §9, §10, §12, §13, §16, §26, §36 |
+| Options | **A. Object storage + async processing + CDN delivery (provider-neutral interfaces)** · **B. All-in-one media platform (Cloudinary/Mux-class)** · **C. Self-managed pipeline (object store + ffmpeg workers)** · **D. DB BLOB storage** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Storage Architecture
+
+| Approach | Verdict |
+|----------|---------|
+| **Object storage** | **Recommended** — purpose-built for binaries: durability, lifecycle rules, signed URLs, CDN-pairable; DB stores metadata only |
+| DB BLOB | Rejected — bloats primary store, breaks backup cadence, no streaming/CDN, worst for video |
+| Hybrid (BLOB for small files) | Rejected — added complexity for no gain |
+
+### 2. Upload Architecture
+
+`Client → POST /media (metadata+intent) → server issues pre-signed direct-upload URL → client PUTs to object storage → POST /media/{id}/complete → async processing → status via GET /media/{id}` (WS ready-event optional, OD-09 dependent)
+
+- **Large files:** multipart upload support; resumable uploads via multipart/session resumption — *recommendation, FRS silent*
+- **Retry/interruption:** client retries part-level failures; incomplete uploads expire via lifecycle policy
+- **Verification:** server checks object existence/size/ETag at `/complete`; checksum (SHA-256/ETag) recorded
+- **Duplicates:** content-hash dedup optional *(inference)*; same-file re-upload is harmless (new Media ID)
+
+### 3. Media Processing — MVP vs Future
+
+| Type | MVP scope | Deferred/future |
+|------|-----------|-----------------|
+| Video | Transcode to standard H.264/HLS renditions *(recommendation)*, thumbnail/poster, duration/resolution metadata | Per-scene detection, advanced quality ladders |
+| Audio | Transcode to common bitrate, duration; waveform metadata **optional — not justified for MVP** | Waveforms, loudness |
+| Images | Resize variants, thumbnails, format normalization, **EXIF strip** | AI tagging |
+| Documents | Type validation + malware scan; preview **optional** | Full-text extraction |
+| All | Async via internal job queue (monolith worker) — **no broker required at MVP** | GPU/ML pipelines |
+
+*FRS requires upload/storage/playback `[§10]` — rendition/transcode specifics are architecture recommendations.*
+
+### 4. Media Metadata — Principles (no schema yet)
+
+`MediaAsset`: media ID, owner ID, media type + MIME, file size, storage reference (provider-neutral object key), duration, dimensions, **processing status**, **visibility**, **moderation status**, timestamps; `MediaVariant`: per-rendition info. Explicit attach links (`SubmissionMedia`, `PortfolioItemMedia`, `MessageAttachment`) per DATA-ARCHITECTURE. Metadata is the durable record — binaries are regenerable artifacts.
+
+### 5. Access Control
+
+| Media class | Access rule |
+|-------------|-------------|
+| Public (landing/discovery) | Public objects/CDN URL acceptable |
+| Private/profile/portfolio | Visibility-gated → short-lived signed URLs, server-issued after authz check |
+| Competition submissions | Per competition state + submission rules `[§16]`; judges see assigned entries `[§19]` |
+| Creative Room assets | Members only `[§13]` |
+| Message attachments | Conversation members only |
+| Moderation/admin | System-role-gated; access audited |
+
+**Principle:** media access never bypasses domain authz — server authorizes *before* issuing any URL; storage ACLs are a second layer, not the control plane.
+
+### 6. Delivery
+
+**Recommendation:** CDN-fronted signed URLs for non-public media; public-CDN for public assets; HLS for video *(recommendation)*. **Never proxy media through the API.** CDN/provider selection deferred to OD-12 — interfaces stay provider-neutral.
+
+### 7. Security Controls
+
+MIME+extension allowlists per type `[FRS §10]`; magic-byte sniffing (not extension-trust); size limits; malware scanning on upload-complete (async); `Content-Disposition: attachment` for non-renderable types; short signed-URL expiry; server-generated object keys (no user path control); EXIF/metadata stripping on publish; executable rejection; rate-limited upload initiation.
+
+### 8. Moderation Integration
+
+Recommended status model *(architecture recommendation — FRS doesn't enumerate states)*:
+
+`Uploaded → Processing → Ready → {UnderReview → Approved|Rejected} → Removed`
+
+Transitions driven by `[FRS §10][§26]` lifecycle + moderation events; `Rejected/Removed` revokes delivery; domain-owned states, not pipeline-owned.
+
+### 9. Competition Media
+
+- Attached via `SubmissionMedia`; association locked when submission finalizes `[§16]`
+- Deadline enforced at submission level — media referenced after deadline can't attach
+- Immutable evidence: submitted media links frozen; replacement blocked post-submission *(recommendation per `[FRS §16]` immutability)*
+- Judge sees assigned submissions only; audience sees per-competition visibility config
+- Retention per audit `[§30]` — *duration is a product policy, not architecture*
+
+### 10. Messaging Attachments `[FRS §12]`
+
+Members-only; per-conversation size limits; scanned like other media; thumbnails for images/video; deletion follows message deletion + retention *(product decision pending)*; delivered via signed URLs in message payload.
+
+### 11. Performance & Scalability
+
+Async worker tier decouples transcode bursts; object storage scales natively; CDN absorbs delivery load; lifecycle rules control storage cost; concurrent uploads are storage-native — no backend bottleneck. Single worker pool suffices for MVP — no premature infra.
+
+### 12. Disaster Recovery
+
+Object-store durability (11-9s class standard); metadata backed via PostgreSQL `[FRS §36]`; **reconciliation job** for orphaned objects/records; recovery = metadata restore + re-derive missing renditions on demand.
+
+### 13. Privacy & Lifecycle
+
+User-deleted → object delete + metadata tombstone; moderation-removed → revoke + retain per audit policy; competition retention per product policy; room dissolution per room policy; attachment lifecycle tied to conversation. **Product policies pending** — architecture supports any.
+
+### 14–15. Alternatives & Provider Neutrality
+
+Rejected: DB BLOB (wrong store), self-managed ffmpeg fleet (ops burden), media platform lock-in (egress-pricing risk for video-heavy platform). **Recommended: A** — all behind provider-neutral interfaces; concrete provider = OD-12's job.
+
+### 16. API Alignment (OD-07)
+
+Contract sequence matches OD-07 §11 exactly; statuses feed `GET /media/{id}`; WS ready-event optional (OD-09 transport pending).
+
+### 17. Future Extraction
+
+Media module isolated behind storage/processing adapters — extraction = lift module + storage config; object storage is already infra-independent. No redesign needed.
+
+### Devin Recommendation
+
+**Option A — object storage + direct-to-storage upload + async processing + CDN delivery, behind provider-neutral interfaces.** Processing via internal job queue (no broker at MVP); provider selection deferred to OD-12.
+
+### Open Questions
+
+1. CDN vs direct object delivery cost posture — tied to OD-12 provider choice
+2. Video rendition ladder (resolutions/bitrates) — implementation detail
+3. Document preview strategy — deferred to implementation
+4. Attachment/room/media retention policies — product decisions pending
+5. Content-hash dedup for duplicate uploads — evaluate at implementation
 
 ## OD-09 — Real-Time Communication
 

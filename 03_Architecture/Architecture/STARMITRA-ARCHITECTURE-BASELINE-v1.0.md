@@ -249,7 +249,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 | # | Decision | Blocks |
 |---|----------|--------|
 | OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
-| OD-08 | Media storage + CDN + transcoding providers | D3 implementation |
+| OD-08 | Media architecture — detailed review completed; recommendation = object storage + async processing + CDN behind provider-neutral interfaces (provider pick deferred to OD-12); formal decision pending | D3 implementation |
 | OD-09 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
 | OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |
 | OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
