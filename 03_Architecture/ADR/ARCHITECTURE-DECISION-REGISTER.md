@@ -41,7 +41,7 @@ Engineering                   → Devin
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-10 | Cache | **No distributed cache for MVP — in-process cache for hot reference data only; Redis deferred with explicit triggers** | PROPOSED — PENDING REVIEW |
+| OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
@@ -1138,8 +1138,27 @@ Rejected: managed realtime platform (cost/lock-in), SSE/polling (insufficient), 
 | Context | FRS demands correctness for votes/evaluations/scores `[BR-14][FRS §22]` — caching must never corrupt authoritative state. No FRS requirement mandates sub-ms reads or shared caching. OD-09 did not approve Redis; this OD decides whether any cache is needed at all. |
 | FRS References | §18 voting, §20 rubrics, §22 scoring, §24 leaderboards, §36 NFRs |
 | Options | **A. No distributed cache — in-process cache for hot reference data only** · **B. Redis/Valkey** · **C. Managed cache (ElastiCache-class)** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** No distributed cache for MVP. `ADR-010` will formalize after the OD sequence. **Binding guardrails:**
+
+1. No distributed cache is required for MVP.
+2. PostgreSQL remains the authoritative source of truth.
+3. In-process caching may be used selectively for hot, relatively stable reference/configuration data.
+4. HTTP caching may be used where appropriate.
+5. CDN caching may be used for appropriate public media/content.
+6. Cache is an optimization and never an authoritative data store.
+7. Votes, submissions, evaluations, scores, rankings, competition state, messages and audit records remain authoritative in PostgreSQL.
+8. Authorization decisions must not rely on a shared cache as the authority.
+9. Cached display data must never determine official competition results.
+10. Cache failure must degrade safely to PostgreSQL wherever possible.
+11. Cache invalidation remains simple for MVP.
+12. Redis/Valkey is deferred and is **NOT approved**.
+13. Multi-instance WebSocket fan-out may become a future distributed-cache/coordination trigger.
+14. Measured hot-read performance may become a future cache trigger.
+15. Any future distributed-cache adoption requires a separate architecture decision.
+16. Cache technology/library selection is not part of OD-10 implementation.
 
 ### 1. Is Caching Actually Required?
 
