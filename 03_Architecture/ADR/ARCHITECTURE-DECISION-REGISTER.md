@@ -32,7 +32,7 @@ Engineering                   → Devin
 |----|-------|----------------|--------|
 | OD-01 | Architecture style | Modular monolith | **PROPOSED ACCEPTANCE — PENDING FINAL ADR APPROVAL** |
 | OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-03 | Primary database | PostgreSQL | PROPOSED — PENDING REVIEW |
+| OD-03 | Primary database | **PostgreSQL** — detailed review completed; already inside OD-02 accepted stack | PROPOSED — PENDING REVIEW (recommendation: accept) |
 | OD-04 | Web frontend | React + Next.js (one framework, all four surfaces) | PROPOSED — PENDING REVIEW |
 | OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
 | OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
@@ -167,18 +167,128 @@ Service Mesh
 |-------|---------|
 | Decision ID | OD-03 |
 | Decision | Primary transactional database (system of record). |
-| Context | M:N core (User↔Skill, User↔SystemRole, Project↔Member↔Role); strict consistency for votes/evaluations/scores `[FRS §22][§30][§36]`; config-driven JSON entities (rubric versions, round configs); admin reporting `[FRS §29]`; backup/recovery `[FRS §36]`. |
-| FRS References | §31 logical model, §30 audit, §36 NFRs |
-| Options | **A. PostgreSQL.** **B. MySQL/MariaDB.** **C. SQL Server.** **D. MongoDB/DocumentDB.** **E. Distributed SQL (CockroachDB/Yugabyte).** |
-| Advantages | **A:** best-in-class relational + JSONB (config-driven rubrics/rounds in typed docs where needed); strong constraints/checks for immutability rules; FTS+trigram built-in (helps OD-10); mature replication/backup; huge ecosystem; free. **B:** ubiquitous, simple, cheap ops; decent JSON. **C:** excellent tooling/HA story; JSON support. **D:** flexible schema; easy horizontal scale. **E:** multi-region resilience; scale-out writes. |
-| Disadvantages | **A:** JSONB ≠ document store for truly schemaless needs; sharding is manual if ever needed. **B:** weaker JSON/FTS/advanced-constraint support than PG; check-constraint enforcement historically lax (better in 8.x). **C:** license cost; ops weight. **D:** transactions across documents are weaker fit for scoring invariants; joins re-implemented in app code; FRS model is inherently relational. **E:** cost/ops complexity unjustified at MVP scale. |
-| StarMitra Fit | **A strongest:** the FRS §31 model is relational; JSONB covers config-driven entities without a second store; append-only audit + immutability via constraints/triggers; read replicas later for reporting. **D rejected:** M:N spine + transactional scoring is the wrong shape for document DB. **E premature.** |
-| Team Impact | A/B familiar to most devs; C needs DBA-ish ops; D shifts integrity into app code; E needs specialist ops. |
-| Cost/Complexity | A/B low (managed tiers cheap); C license; D low-medium; E high. |
-| Risks | A: none material at MVP scale. Cross-store drift if a second DB is introduced casually — resist. |
-| Devin Recommendation | **A — PostgreSQL** as sole transactional store. Separate concerns explicitly: **search** → OD-10 (start with PG FTS); **cache** → OD-09 (defer); **analytics** → OD-12 (defer warehouse). One DB until a measured need says otherwise. |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Context | FRS §31 logical model is inherently relational (M:N spine: User↔TalentSkill, User↔SystemRole, Project↔Member↔ContributionRole); strict consistency for votes/evaluations/scores `[FRS §18–24][§30][§36]`; config-driven entities (rubric versions, round configs) `[FRS §15][§20]`; admin reporting `[FRS §29]`; audit + backup/recovery `[FRS §30][§36]`. **Note:** PostgreSQL already sits inside the OD-02 accepted backend baseline — this OD formally evaluates/approves it as the primary datastore. |
+| FRS References | §10 content lifecycle, §15–24 competition pipeline, §30 audit, §31 data model, §36 NFRs |
+| Options | **A. PostgreSQL** · **B. MySQL 8** · **C. MariaDB** · **D. SQL Server** · **E. Distributed SQL (CockroachDB/Yugabyte)** · **F. Non-relational (MongoDB-class) — evaluated and rejected for the transactional core** |
+| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW (recommendation: accept) |
 | Decision Owner | Product + Technical Review |
+
+### 1. Domain Model Fit
+
+All FRS §31 entities map directly to relational tables — no impedance mismatch:
+
+| Domain | Relational fit |
+|--------|----------------|
+| Users & multi-talent skills | `User`—`UserTalentSkill`—`TalentSkill` M:N — natural |
+| Portfolio/media metadata | `PortfolioItem`, `MediaAsset`, `MediaVariant` — FK-linked; binaries live in object storage (metadata only in DB) |
+| Creative Rooms | `CreativeRoom`, `Project`, `ProjectMember`, `ProjectContributionRole` — M:N + contextual mapping |
+| Competitions/rounds | `Competition`, `CompetitionRound`, `CompetitionCategory` — parent-child + per-round config (JSONB optional) |
+| Submissions | Immutable association FKs (competition/round/category) `[FRS §16]` |
+| Voting | `Vote` append-only + `VoteAggregate` |
+| Judges/assignments | `Judge`, `JudgeAssignment` — scoped references |
+| Rubrics | `EvaluationTemplate` → `EvaluationTemplateVersion` → `EvaluationCriterion` — versioned tree; JSONB viable for criterion config blobs |
+| Scores/ranking/qualification | `Score`, `Ranking`, `QualificationDecision`, `OverrideRecord` — strictly transactional |
+| Notifications | `Notification`, `NotificationPreference`, `DeliveryAttempt` — append-heavy inserts |
+| Moderation | `Report`, `ModerationCase`, `ModerationAction` |
+| Audit | `AuditLog` append-only `[FRS §30]` |
+
+### 2. Transactional Requirements
+
+| Requirement `[FRS]` | PostgreSQL mechanism |
+|---------------------|----------------------|
+| One vote per voter per configured limit `[BR-14][§18]` | Unique constraint + `INSERT … ON CONFLICT DO NOTHING` — dedup at the DB, not just app logic |
+| Vote/evaluation/audit atomicity `[§18][§21][§30]` | Multi-statement transactions; audit row written **in the same transaction** as the business write |
+| Evaluation submission → lock `[BR-12]` | Atomic insert + status transition; subsequent writes rejected at constraint level |
+| Score aggregation `[§22]` | Aggregation reads under consistent snapshot; result writes transactional |
+| Ranking/qualification `[§23]` | Batch compute → single commit; repeatable-read isolation for stable input |
+| Round progression `[§23]` | Eligibility read (prior round) + advancement write in one transaction |
+| Authorized overrides `[BR-13]` | Override row + `AuditLog` + recomputed standing in one transaction — override can never exist without its audit record |
+| Auditability `[§30]` | Append-only table; insert-only privileges optional hardening |
+
+### 3. Data Modeling Capability
+
+- **Foreign keys** — full referential integrity across the M:N spine `[FRS §31.1]`.
+- **Unique constraints** — `TalentSkill.name` uniqueness `[FRS §7]`; vote-dedup keys `[BR-14]`; one evaluation per judge×submission.
+- **Check constraints** — enforce Σ weights = 100% at insert for rubric criteria `[BR-11][FRS §20]` and scoring mixes `[FRS §22]`; enum-like status fields.
+- **Indexing** — B-tree, composite (e.g., `(competition_id, round_id, category_id)` for rankings), partial indexes (active submissions only), covering indexes for leaderboards.
+- **JSON/JSONB** — suitable for **config-driven payloads**: rubric criterion definitions, round config, eligibility rules, scoring rules. *Inference (not FRS):* keep the relational spine typed; use JSONB only for truly variable configuration — not for core entities.
+- **Temporal/versioned data** — natural fit: `EvaluationTemplateVersion` immutable rows `[BR-10]`, versioned consent records `[FRS §8]`, effective-dated configs.
+- **Audit/event records** — append-only `AuditLog`; optional `OutboxEvent` table for reliable domain-event publishing *within* the monolith (no broker implied — see §8 note below).
+
+### 4. Concurrency Requirements
+
+| Scenario | PostgreSQL answer |
+|----------|-------------------|
+| Concurrent audience voting `[§18]` | MVCC — readers don't block writers; dedup via unique constraint + upsert; aggregate counter updates via row locks or deferred rollup |
+| Concurrent judge evaluations `[BR-12]` | Judges touch disjoint rows (own assignments) — minimal contention; `SELECT … FOR UPDATE` where needed |
+| Competition closing transitions | Single scheduler transaction; advisory lock prevents double-close |
+| Ranking calculation | Consistent-snapshot read + bulk insert/upsert of `Ranking` |
+| Round progression | Transactional read-then-write; row locks on affected `Submission`/standing rows |
+| High-contention rows (aggregates, counters) | Row-level locking is adequate at MVP scale; counter contention can be smoothed via aggregate-table rollups — *inference: no queue/broker required for MVP* |
+
+MVCC + row-level locks + advisory locks cover every FRS concurrency case without external coordination.
+
+### 5. Scalability — MVP → Growth
+
+- **MVP:** single primary + HikariCP pooling covers expected load comfortably — competition write bursts are modest by industry standards.
+- **Growth path without premature scale:** read replicas for reporting/feed reads `[FRS §29]`; connection pooler (pgbouncer-class) under connection pressure; table partitioning for high-volume append tables (`Vote`, `AuditLog`, `Notification`) *if/when* volume warrants — additive, no redesign.
+- **Not needed now:** sharding, distributed SQL, multi-region — mark future decisions.
+- Media binaries never in DB — DB load is metadata-scale, not GB-scale.
+
+### 6. Spring Boot Compatibility (OD-02 stack)
+
+| Concern | PostgreSQL answer |
+|---------|-------------------|
+| Spring Data JPA / Hibernate | First-class dialect; JSONB via `@Type`/hypersistence or attribute converters |
+| JDBC | Direct access where ORM is inappropriate (aggregations, batch ranking) |
+| Transactions | `@Transactional` → PG isolation levels/locks; `@Lock` for pessimistic paths |
+| Connection pooling | **HikariCP** (Spring Boot default) — best-in-class |
+| Testcontainers | `PostgreSQLContainer` — real-DB integration tests for scoring/voting paths |
+| Flyway | **Accepted in OD-02 stack** — versioned migrations, pristine baseline |
+| Batch/jobs | Spring Batch job-repository tables — native support |
+
+### 7. Reliability & Operations
+
+- **Backup/recovery `[FRS §36]`:** pg_dump + WAL archiving → PITR; managed offerings automate this.
+- **Replication/read replicas:** native streaming replication; read replicas for reporting/offload.
+- **Monitoring:** `pg_stat_*` views, slow-query logging; every major cloud exposes dashboards.
+- **Migration management:** Flyway (accepted); transactional DDL reduces half-migrated states.
+- **Production operations:** widest managed-service availability of any OSS database (all three major clouds).
+
+### 8. PostgreSQL-Specific Capabilities — Scoped Adoption
+
+| Capability | Status for StarMitra |
+|------------|----------------------|
+| FK/unique/check constraints, MVCC, row locks, advisory locks, `INSERT…ON CONFLICT`, JSONB, partial/composite indexes, CTEs/window functions (ranking math!), transactional DDL | **Required-for-MVP scope** |
+| FTS `tsvector` + `pg_trgm` (powers OD-10 DB-search recommendation), table partitioning, LISTEN/NOTIFY, materialized views (leaderboards/reporting), generated columns | **Optional — adopt when the dependent feature lands** |
+| Logical replication/CDC feeds, multi-region setups, exotic extensions, row-level security for multi-tenant partitioning | **Not adopted without a separate decision** |
+
+### 9. Alternatives — Explicit Criteria
+
+| Criterion | PostgreSQL | MySQL 8 | MariaDB | SQL Server | Distributed SQL (CockroachDB-class) | MongoDB-class |
+|-----------|-----------|---------|---------|------------|-------------------------------------|----------------|
+| Constraint rigor (checks, FK strictness) | Excellent | Good (strict mode) | Good | Excellent | Good–Excellent | Weak (app-enforced) |
+| JSON for config entities | **JSONB — best-in-class** | JSON (functional) | JSON (functional) | JSON (functional) | JSONB-compatible | Native — but wrong model shape |
+| Concurrent voting/eval paths | MVCC + rich locking | InnoDB MVCC | InnoDB MVCC | MVCC | Global MVCC | Doc-level tx, weaker multi-doc |
+| Tx guarantees for scoring pipeline | Excellent | Good | Good | Excellent | Excellent | Adequate |
+| Versioned/immutable data fit | Excellent | Good | Good | Excellent | Good | Adequate |
+| FTS/search baseline | Built-in FTS+trigram | Basic FTS | Basic FTS | Full-Text Search | Limited | Atlas Search (managed) |
+| Spring Boot integration | First-class | First-class | First-class | First-class | Compatible | Via Spring Data Mongo |
+| Ops/managed availability | Best-in-class | Excellent | Good | Excellent (licensed) | Limited/complex | Managed (Atlas) |
+| Cost | Free/OSS | Free/OSS | Free/OSS | License $$$ | Costly | Free/managed $ |
+| MVP fit | **Best** | Credible | Credible | Credible (licensing) | Premature | Wrong shape — rejected |
+
+**MySQL/MariaDB** are credible substitutes — StarMitra's model would work — but weaker on JSONB-class config modeling, advanced indexing (partial), window-function ergonomics for ranking, and FTS for OD-10. **SQL Server** is technically capable; licensing makes it unjustified for a startup. **Distributed SQL** answers scale questions StarMitra doesn't have yet. **Document DBs** conflict with the inherently relational FRS §31 model and move integrity into application code.
+
+### 10. Recommendation
+
+**PostgreSQL — recommend ACCEPT.**
+
+- **Advantages:** exact fit for the relational FRS model; strongest constraint/transaction toolkit for the competition pipeline; JSONB covers config-driven entities without a second store; FTS seeds OD-10; free/OSS with the widest managed-service availability; seamless in the accepted Spring Boot stack (HikariCP, Flyway, Testcontainers, Spring Batch).
+- **Trade-offs:** JSONB ≠ schemaless document store (not needed); sharding is manual if ever needed (not needed at MVP); advanced features (partitioning, LISTEN/NOTIFY, CDC) arrive only via separate decisions.
+- **Risks:** (i) over-reliance on a single DB for search/analytics later — mitigated by OD-09/10/12 staging triggers; (ii) heavy reporting queries contending with OLTP — mitigated by read replica + rollups before competition peaks; (iii) migration drift — mitigated by Flyway discipline (accepted) + transactional DDL.
+- **Impact on architecture:** single system of record inside the modular monolith; module-per-schema or module-per-table conventions enforce OD-01 ownership boundaries *within* one database — modules must not reach across each other's tables.
+- **Impact on future extraction:** module-owned tables/schemas make later extraction mechanical (export schema → new service DB); JSONB config entities keep rubric/round evolution inside module ownership; no shared-cache or broker implied — consistent with "no Redis/Kafka without separate decision."
 
 ## OD-04 — Web Frontend
 

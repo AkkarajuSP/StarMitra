@@ -243,7 +243,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-03 | Primary database — PostgreSQL already inside OD-02 accepted stack; formal decision pending | Schema design |
+| OD-03 | Primary database — PostgreSQL (inside OD-02 accepted stack; detailed review completed, recommendation = accept; formal decision pending) | Schema design |
 | OD-04 | Web frontend stack | Web implementation |
 | OD-05 | Mobile stack (native vs cross-platform) | Mobile implementation |
 | OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |

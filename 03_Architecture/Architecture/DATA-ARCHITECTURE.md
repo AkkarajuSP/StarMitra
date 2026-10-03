@@ -4,7 +4,7 @@
 
 ## 1. Approach
 
-`[Proposed]` Single relational database as system of record for all domain data (see SYSTEM-ARCHITECTURE §2). `[Open OD-2]` DBMS selection — evaluation criteria: transactional integrity for scoring/voting `[FRS §36]`, flexible typed data for configuration-driven entities (rubrics, round config), mature replication/backup. PostgreSQL is the leading candidate `[Proposed]` pending ADR-TBD-2.
+`[Accepted]` Single relational database as system of record for all domain data (see SYSTEM-ARCHITECTURE §2). PostgreSQL — inside the OD-02 accepted backend stack; OD-03 detailed review completed with recommendation to accept (formal decision pending). Selection rationale: transactional integrity for scoring/voting `[FRS §36]`, relational fit for the FRS §31 model, JSONB for configuration-driven entities (rubrics, round config), mature replication/backup.
 
 Media binaries are never stored in the database — object storage with metadata rows `[FRS §10][MEDIA-ARCHITECTURE]`.
 
