@@ -19,7 +19,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 11 | Audience Voting | [MODULE-AUDIENCE-VOTING.md](MODULE-AUDIENCE-VOTING.md) | Designed |
 | 12 | Judge Management | [MODULE-JUDGE-MANAGEMENT.md](MODULE-JUDGE-MANAGEMENT.md) | Designed |
 | 13 | Judge Rubrics | [MODULE-JUDGE-RUBRICS.md](MODULE-JUDGE-RUBRICS.md) | Designed |
-| 14 | Scoring & Ranking | — | Pending |
+| 14 | Scoring & Ranking | [MODULE-SCORING-RANKING.md](MODULE-SCORING-RANKING.md) | Designed |
 | 15 | Round Progression | — | Pending |
 | 16 | Leaderboards | — | Pending |
 | 17 | Notifications | — | Pending |
