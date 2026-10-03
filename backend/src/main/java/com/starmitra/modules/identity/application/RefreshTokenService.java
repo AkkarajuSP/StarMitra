@@ -30,12 +30,15 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository tokens;
     private final AuditService audit;
+    private final AuthEventService authEvents;
     private final Duration ttl;
 
     public RefreshTokenService(RefreshTokenRepository tokens, AuditService audit,
+                               AuthEventService authEvents,
                                @Value("${app.refresh-token.ttl}") Duration ttl) {
         this.tokens = tokens;
         this.audit = audit;
+        this.authEvents = authEvents;
         this.ttl = ttl;
     }
 
@@ -50,7 +53,8 @@ public class RefreshTokenService {
         return new IssuedToken(t.getId(), userId, raw);
     }
 
-    @Transactional
+    /** noRollbackFor: reuse detection + family revocation must persist even as the request is rejected. */
+    @Transactional(noRollbackFor = ApiException.class)
     public IssuedToken rotate(String presentedRaw) {
         RefreshTokenEntity presented = tokens.findByTokenHash(hash(presentedRaw))
                 .orElseThrow(() -> new ApiException(ErrorCode.SESSION_REVOKED, "Unknown refresh token"));
@@ -60,6 +64,8 @@ public class RefreshTokenService {
             if (presented.getRevokedAt() != null) {
                 presented.markReuseDetected();
                 tokens.revokeFamily(presented.getFamilyId());
+                authEvents.record(presented.getUserId(), AuthEventService.REFRESH_REUSE_DETECTED,
+                        "{\"familyId\":\"" + presented.getFamilyId() + "\"}");
                 audit.record("M01", "REFRESH_REUSE_DETECTED", presented.getUserId(), "system",
                         "refresh_token", presented.getId().toString(), "revoked token re-presented");
             }
@@ -68,6 +74,7 @@ public class RefreshTokenService {
 
         IssuedToken next = issue(presented.getUserId(), presented.getFamilyId());
         presented.markRotated(next.id());
+        authEvents.record(presented.getUserId(), AuthEventService.REFRESH_ROTATED);
         return next;
     }
 
@@ -76,6 +83,7 @@ public class RefreshTokenService {
         tokens.findByTokenHash(hash(presentedRaw)).ifPresent(t -> {
             if (t.isActive()) {
                 t.markRotated(null);
+                authEvents.record(t.getUserId(), AuthEventService.SESSION_REVOKED, "{\"reason\":\"logout\"}");
                 audit.record("M01", "SESSION_REVOKED", actorId, "user",
                         "refresh_token", t.getId().toString(), "logout");
             }

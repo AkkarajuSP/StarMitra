@@ -14,11 +14,14 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     @Query("select t from RefreshTokenEntity t where t.familyId = :familyId and t.revokedAt is null")
     List<RefreshTokenEntity> findActiveByFamilyId(UUID familyId);
 
-    @Modifying
+    @Query("select t from RefreshTokenEntity t where t.userId = :userId and t.revokedAt is null")
+    List<RefreshTokenEntity> findActiveByUserId(UUID userId);
+
+    @Modifying(clearAutomatically = true)
     @Query("update RefreshTokenEntity t set t.revokedAt = CURRENT_TIMESTAMP where t.familyId = :familyId and t.revokedAt is null")
     int revokeFamily(UUID familyId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update RefreshTokenEntity t set t.revokedAt = CURRENT_TIMESTAMP where t.userId = :userId and t.revokedAt is null")
     int revokeAllForUser(UUID userId);
 }

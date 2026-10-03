@@ -2,6 +2,7 @@ package com.starmitra.modules.identity.api;
 
 import com.starmitra.modules.identity.application.AuthService;
 import com.starmitra.modules.identity.application.OtpService;
+import com.starmitra.modules.identity.application.SessionService;
 import com.starmitra.platform.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -27,16 +28,18 @@ public class AuthController {
 
     private final OtpService otpService;
     private final AuthService authService;
+    private final SessionService sessionService;
     private final String cookieName;
     private final boolean cookieSecure;
     private final String sameSite;
 
-    public AuthController(OtpService otpService, AuthService authService,
+    public AuthController(OtpService otpService, AuthService authService, SessionService sessionService,
                           @Value("${app.auth.cookie.name}") String cookieName,
                           @Value("${app.auth.cookie.secure}") boolean cookieSecure,
                           @Value("${app.auth.cookie.same-site}") String sameSite) {
         this.otpService = otpService;
         this.authService = authService;
+        this.sessionService = sessionService;
         this.cookieName = cookieName;
         this.cookieSecure = cookieSecure;
         this.sameSite = sameSite;
@@ -77,14 +80,19 @@ public class AuthController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<List<AuthDtos.SessionInfo>> listSessions() {
-        SecurityUtils.currentUserId();
-        return ResponseEntity.ok(List.of());   // session listing surface — foundation stub
+    public ResponseEntity<List<AuthDtos.SessionInfo>> listSessions(
+            @CookieValue(name = "sm_refresh", required = false) String cookieToken,
+            @RequestHeader(name = "X-Refresh-Token", required = false) String headerToken) {
+        String presented = headerToken != null ? headerToken : cookieToken;
+        var sessions = sessionService.listForUser(SecurityUtils.currentUserId(), presented).stream()
+                .map(s -> new AuthDtos.SessionInfo(s.id(), s.createdAt(), s.current()))
+                .toList();
+        return ResponseEntity.ok(sessions);
     }
 
     @DeleteMapping("/sessions/{sessionId}")
     public ResponseEntity<Void> revokeSession(@PathVariable UUID sessionId) {
-        SecurityUtils.currentUserId();
+        sessionService.revokeSession(SecurityUtils.currentUserId(), sessionId);
         return ResponseEntity.noContent().build();
     }
 

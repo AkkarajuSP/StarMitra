@@ -1,6 +1,8 @@
 package com.starmitra.platform.audit;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -30,9 +32,11 @@ public class AuditLogEntity {
     @Column(name = "target_id", length = 80)
     private String targetId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "before_ref", columnDefinition = "jsonb")
     private String beforeRef;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "after_ref", columnDefinition = "jsonb")
     private String afterRef;
 

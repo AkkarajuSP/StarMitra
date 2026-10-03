@@ -21,13 +21,15 @@ public class AuthService {
     private final RefreshTokenService refreshTokens;
     private final JwtTokenService jwt;
     private final UserRepository users;
+    private final AuthEventService authEvents;
 
     public AuthService(OtpService otpService, RefreshTokenService refreshTokens,
-                       JwtTokenService jwt, UserRepository users) {
+                       JwtTokenService jwt, UserRepository users, AuthEventService authEvents) {
         this.otpService = otpService;
         this.refreshTokens = refreshTokens;
         this.jwt = jwt;
         this.users = users;
+        this.authEvents = authEvents;
     }
 
     public record Session(UUID userId, String accessToken, long expiresInSeconds, String refreshToken) {}
@@ -66,6 +68,7 @@ public class AuthService {
     private Session newSession(UUID userId) {
         List<String> roles = users.findRoleNamesByUserId(userId);
         RefreshTokenService.IssuedToken refresh = refreshTokens.issue(userId, UUID.randomUUID());
+        authEvents.record(userId, AuthEventService.SESSION_ESTABLISHED);
         return new Session(userId, jwt.issueAccessToken(userId, roles), jwt.ttl().toSeconds(), refresh.raw());
     }
 }

@@ -21,7 +21,7 @@
 
 ## Module alignment (M01–M21)
 
-All 21 modules exist as `api/application/domain/persistence` packages. Foundation-level code: **M01** (full auth core), **M12** (judge+assignment persistence + `JudgeScopeService` contract), **M20** (`/judges/me` + `/assignments`), **M04** (storage contract). Remaining modules = boundary skeletons awaiting feature phases. ArchUnit rules prove: no api→persistence, no cross-module persistence imports, portals own no persistence. **GREEN**
+All 21 modules exist as `api/application/domain/persistence` packages. **M01 is business-implemented** (registration-via-OTP, OTP lifecycle, JWT, refresh rotation/reuse/family, sessions, role assignment, auth audit events). **M12** (judge+assignment persistence + `JudgeScopeService` contract), **M20** (`/judges/me` + `/assignments`), **M04** (storage contract) remain foundation-level. Remaining modules = boundary skeletons awaiting feature phases. ArchUnit rules prove: no api→persistence, no cross-module persistence imports, portals own no persistence. **GREEN**
 
 ## Database alignment
 

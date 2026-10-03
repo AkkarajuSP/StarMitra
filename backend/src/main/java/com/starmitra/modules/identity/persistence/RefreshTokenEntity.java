@@ -47,6 +47,7 @@ public class RefreshTokenEntity {
     }
 
     public UUID getId() { return id; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
     public UUID getUserId() { return userId; }
     public String getTokenHash() { return tokenHash; }
     public UUID getFamilyId() { return familyId; }

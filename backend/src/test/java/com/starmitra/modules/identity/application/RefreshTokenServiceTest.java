@@ -25,7 +25,7 @@ class RefreshTokenServiceTest {
     void setUp() {
         tokens = mock(RefreshTokenRepository.class);
         audit = mock(AuditService.class);
-        service = new RefreshTokenService(tokens, audit, Duration.ofDays(30));
+        service = new RefreshTokenService(tokens, audit, mock(AuthEventService.class), Duration.ofDays(30));
     }
 
     @Test

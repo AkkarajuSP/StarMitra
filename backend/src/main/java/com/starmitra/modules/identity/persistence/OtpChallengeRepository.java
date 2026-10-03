@@ -9,9 +9,7 @@ import java.util.UUID;
 
 public interface OtpChallengeRepository extends JpaRepository<OtpChallengeEntity, UUID> {
 
-    @Query("select c from OtpChallengeEntity c where c.userId = :userId and c.consumedAt is null " +
-           "order by c.createdAt desc limit 1")
-    Optional<OtpChallengeEntity> findLatestActive(UUID userId);
+    Optional<OtpChallengeEntity> findTop1ByUserIdAndConsumedAtIsNullOrderByCreatedAtDesc(UUID userId);
 
     @Modifying
     @Query("update OtpChallengeEntity c set c.consumedAt = CURRENT_TIMESTAMP " +

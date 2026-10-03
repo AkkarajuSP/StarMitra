@@ -33,23 +33,28 @@ public class OtpService {
 
     private final OtpChallengeRepository challenges;
     private final UserRepository users;
+    private final RegistrationService registration;
     private final OtpSender sender;
     private final AuditService audit;
+    private final AuthEventService authEvents;
     private final Duration ttl;
     private final int maxAttempts;
     private final Duration resendCooldown;
     private final Duration lockoutWindow;
 
     public OtpService(OtpChallengeRepository challenges, UserRepository users,
-                      OtpSender sender, AuditService audit,
+                      RegistrationService registration,
+                      OtpSender sender, AuditService audit, AuthEventService authEvents,
                       @Value("${app.otp.ttl}") Duration ttl,
                       @Value("${app.otp.max-attempts}") int maxAttempts,
                       @Value("${app.otp.resend-cooldown}") Duration resendCooldown,
                       @Value("${app.otp.lockout-window}") Duration lockoutWindow) {
         this.challenges = challenges;
         this.users = users;
+        this.registration = registration;
         this.sender = sender;
         this.audit = audit;
+        this.authEvents = authEvents;
         this.ttl = ttl;
         this.maxAttempts = maxAttempts;
         this.resendCooldown = resendCooldown;
@@ -57,27 +62,29 @@ public class OtpService {
     }
 
     /**
-     * Request an OTP. Always "accepted" externally — internally no-ops for
-     * unknown/locked identifiers (enumeration-safe per API-ERROR-CATALOG).
-     * Returns userId when a challenge was created (null otherwise).
+     * Request an OTP. Always "accepted" externally — OTP-first registration:
+     * an unknown identifier registers a User (USER role) then issues a
+     * challenge; a suspended/blocked identity gets no challenge
+     * (enumeration-safe per API-ERROR-CATALOG). Returns userId, null if refused.
      */
     @Transactional
     public UUID request(String channel, String identifier) {
-        Optional<UserEntity> user = findUser(channel, identifier);
-        if (user.isEmpty() || user.get().getStatus() != UserEntity.Status.ACTIVE) {
-            audit.record("M01", "OTP_REQUEST_UNKNOWN", null, "anon", "identifier", "redacted", "unknown identifier");
+        UserEntity user = registration.findOrRegister(channel, identifier);
+        if (user.getStatus() != UserEntity.Status.ACTIVE) {
+            authEvents.record(user.getId(), AuthEventService.OTP_REQUEST_UNKNOWN);
             return null;
         }
-        UUID userId = user.get().getId();
+        UUID userId = user.getId();
 
         // throttle: too many recent requests → lockout window
         if (challenges.countRecentRequests(userId, OffsetDateTime.now().minus(lockoutWindow)) >= maxAttempts) {
-            audit.record("M01", "OTP_REQUEST_LOCKED", userId, "user", "user", userId.toString(), "resend lockout");
+            authEvents.record(userId, AuthEventService.OTP_REQUEST_LOCKED);
             return null;
         }
         // resend cooldown from latest challenge
-        Optional<OtpChallengeEntity> latest = challenges.findLatestActive(userId);
+        Optional<OtpChallengeEntity> latest = challenges.findTop1ByUserIdAndConsumedAtIsNullOrderByCreatedAtDesc(userId);
         if (latest.isPresent() && latest.get().getCreatedAt().plus(resendCooldown).isAfter(OffsetDateTime.now())) {
+            authEvents.record(userId, AuthEventService.OTP_RESEND_COOLDOWN);
             return userId;      // accepted but no new challenge yet
         }
 
@@ -87,25 +94,29 @@ public class OtpService {
         challenges.save(new OtpChallengeEntity(userId, hash(otp), maxAttempts,
                 OffsetDateTime.now().plus(ttl)));
         sender.send(channel, identifier, otp);
-        audit.record("M01", "OTP_REQUESTED", userId, "user", "otp_challenge", null, null);
+        authEvents.record(userId, AuthEventService.OTP_REQUESTED);
         return userId;
     }
 
-    /** Verify OTP; consumes the challenge on success. Channel inferred from identifier. */
-    @Transactional
+    /**
+     * Verify OTP; consumes the challenge on success. Channel inferred from
+     * identifier. dontRollbackOn: failed-attempt/lockout state must persist
+     * even though the ApiException propagates.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
     public UUID verify(String identifier, String otp) {
         UserEntity user = findUserByIdentifier(identifier)
                 .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID));
 
-        OtpChallengeEntity challenge = challenges.findLatestActive(user.getId())
+        OtpChallengeEntity challenge = challenges.findTop1ByUserIdAndConsumedAtIsNullOrderByCreatedAtDesc(user.getId())
                 .filter(OtpChallengeEntity::isUsable)
                 .orElseThrow(() -> {
-                    audit.record("M01", "OTP_VERIFY_NO_ACTIVE", user.getId(), "user", null, null, null);
+                    authEvents.record(user.getId(), AuthEventService.OTP_VERIFY_FAILED);
                     return new ApiException(ErrorCode.OTP_INVALID);
                 });
 
         if (challenge.isLocked()) {
-            audit.record("M01", "OTP_VERIFY_LOCKED", user.getId(), "user", null, null, null);
+            authEvents.record(user.getId(), AuthEventService.OTP_LOCKED);
             throw new ApiException(ErrorCode.OTP_LOCKED);
         }
 
@@ -114,23 +125,17 @@ public class OtpService {
             challenge.recordFailedAttempt();
             challenges.save(challenge);
             if (challenge.isLocked()) {
-                audit.record("M01", "OTP_LOCKED", user.getId(), "user", null, null, "max attempts");
+                authEvents.record(user.getId(), AuthEventService.OTP_LOCKED, "{\"reason\":\"max_attempts\"}");
                 throw new ApiException(ErrorCode.OTP_LOCKED);
             }
-            audit.record("M01", "OTP_VERIFY_FAILED", user.getId(), "user", null, null, null);
+            authEvents.record(user.getId(), AuthEventService.OTP_VERIFY_FAILED);
             throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         challenge.consume();
         challenges.save(challenge);
-        audit.record("M01", "OTP_VERIFIED", user.getId(), "user", null, null, null);
+        authEvents.record(user.getId(), AuthEventService.OTP_VERIFIED);
         return user.getId();
-    }
-
-    private Optional<UserEntity> findUser(String channel, String identifier) {
-        return "SMS".equalsIgnoreCase(channel)
-                ? users.findByPhone(identifier)
-                : users.findByEmail(identifier);
     }
 
     /** Contract has no channel on verify — resolve by email first, then phone. */
