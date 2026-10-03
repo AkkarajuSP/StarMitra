@@ -39,7 +39,7 @@ Engineering                   → Devin
 | OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN delivery — provider-neutral** | PROPOSED — PENDING REVIEW |
+| OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-09 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
 | OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
@@ -860,8 +860,31 @@ Unit (services/mappers), controller-slice tests (validation/error mapping), inte
 | Context | Media powers profile/portfolio `[§9]`, discovery `[§11]`, rooms `[§13]`, submissions `[§16]` and Connect `[§12]`; upload/publish lifecycle `[FRS §10]`; moderation `[§26]`; scalable storage required `[FRS §36]`. Largest infrastructure surface of the product. **FRS names no provider — all storage/delivery choices below are architecture recommendations.** |
 | FRS References | §9, §10, §12, §13, §16, §26, §36 |
 | Options | **A. Object storage + async processing + CDN delivery (provider-neutral interfaces)** · **B. All-in-one media platform (Cloudinary/Mux-class)** · **C. Self-managed pipeline (object store + ffmpeg workers)** · **D. DB BLOB storage** |
-| Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
+| Status | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | Decision Owner | Product + Technical Review |
+
+**Review outcome (accepted):** Option A is the approved media architecture. `ADR-008` will formalize after the OD sequence. **Binding guardrails:**
+
+1. Object storage is the primary binary media storage architecture.
+2. PostgreSQL stores durable media metadata and relationships — **not** large media binaries.
+3. Media uploads use authorized direct-to-object-storage transfers.
+4. Spring Boot does **not** proxy media binaries.
+5. Multipart/resumable uploads supported where media size/network conditions justify them.
+6. Upload completion is verified by the backend.
+7. Media processing is asynchronous.
+8. MVP processing supports video, audio, image and document requirements identified in the review.
+9. Media metadata and binary objects remain separate concerns.
+10. Media access requires StarMitra authorization before signed delivery access is issued.
+11. Signed URLs are appropriately short-lived.
+12. CDN delivery is part of the target architecture — **no CDN provider selected**.
+13. Storage and CDN providers remain provider-neutral until OD-12.
+14. Competition submission media respects submission finalization and audit requirements.
+15. Media integrates with moderation.
+16. Media deletion/retention policies remain product decisions where not established by the FRS.
+17. Storage object keys are backend-controlled — never derived from untrusted client input.
+18. Orphaned-object reconciliation is required.
+19. No Redis, Kafka, RabbitMQ or other infrastructure is implied.
+20. Media processing tooling/provider selection remains separate from this decision.
 
 ### 1. Storage Architecture
 
