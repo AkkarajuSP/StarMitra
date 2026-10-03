@@ -23,7 +23,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 15 | Round Progression | [MODULE-ROUND-PROGRESSION.md](MODULE-ROUND-PROGRESSION.md) | Designed |
 | 16 | Leaderboards | [MODULE-LEADERBOARDS.md](MODULE-LEADERBOARDS.md) | Designed |
 | 17 | Notifications | [MODULE-NOTIFICATIONS.md](MODULE-NOTIFICATIONS.md) | Designed |
-| 18 | Moderation / Admin | — | Pending |
+| 18 | Moderation | [MODULE-MODERATION.md](MODULE-MODERATION.md) | Designed |
 | 19 | Analytics / Reporting | — | Pending |
 
 > Module numbering is design-sequence only — domain ownership per the baseline's 15-domain map. Specs are design-only; no implementation.
