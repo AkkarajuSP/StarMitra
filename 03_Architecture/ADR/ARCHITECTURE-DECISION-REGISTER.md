@@ -42,7 +42,7 @@ Engineering                   → Devin
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-10 | Cache | **No distributed cache for MVP — in-process + HTTP/CDN only; Redis deferred w/ triggers** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
+| OD-11 | Search | **PostgreSQL-native (FTS + trigram + relational filters) for MVP; dedicated engine deferred w/ triggers** | PROPOSED — PENDING REVIEW |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
 
@@ -1248,19 +1248,111 @@ Each trigger is a separate decision — Redis is **not** approved by this OD.
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-11 |
-| Decision | Search capability approach for MVP `[FRS §11]`. |
-| Context | Search across talent names, skills, content, projects, competitions + category/skill and content-type filters `[FRS §11]`; advanced search is P1 `[FRS §35]`. |
-| FRS References | §11 feed/discovery/search, §35 P1 advanced search |
-| Options | **A. Database search** (PostgreSQL FTS `tsvector` + `pg_trgm` + structured filters). **B. Dedicated engine** (OpenSearch/Elasticsearch, Meilisearch, Typesense, or hosted Algolia). **C. Hybrid** — DB for filters, engine for relevance. |
-| Advantages | **A:** zero extra infra; same transactions/backups; filters are trivially relational; good-enough ranking for MVP scale. **B:** superior relevance, typo-tolerance, facets, instant search, scale. **C:** best of both when needed. |
-| Disadvantages | **A:** weaker relevance/typo/fuzzy matching; ranking tuning is manual; heavy queries on primary DB (mitigate: read replica). **B:** extra infra/ops or vendor bill; index-sync pipeline from system of record; eventual-consistency edge cases (deleted content surfacing). **C:** both costs. |
-| StarMitra Fit | **A for MVP:** FRS search needs are filter-browse + name/title lookups — PG covers them honestly. **B trigger:** when typo-tolerance/faceted discovery becomes a product differentiator or query load demands it — likely P1 "advanced search" `[FRS §35]`. Design read models (D5) so a dedicated engine can be swapped in behind the same query contract. |
-| Team Impact | A: none extra. B/C: index pipelines + ops. |
-| Cost/Complexity | A lowest; B medium-high; C highest. |
-| Risks | A: search quality disappoints vs consumer expectations — mitigate early with trigram + curated facets; B: index drift → sync jobs + reconciliation. |
-| Devin Recommendation | **A — PostgreSQL FTS + `pg_trgm` + structured filters** for MVP; dedicated engine deferred to P1/advanced-search phase with explicit adoption criteria (volume, relevance complaints, facet needs). |
+| Decision | Search architecture for MVP + triggers for future dedicated search infrastructure. |
+| Context | `[FRS §11]` requires talent search by name/skill, feed/discovery, "advanced search by skills/categories" as P1 `[FRS §35]`; genre/category popularity in reports `[§29]`. Elasticsearch/OpenSearch NOT pre-approved. |
+| FRS References | §11 discovery/feed/search, §35 P1 advanced search, §29 analytics |
+| Options | **A. PostgreSQL-native search** (FTS + trigram + relational filters) · **B. Dedicated engine** (Elasticsearch/OpenSearch/Meilisearch-class) · **C. Managed search service** (Algolia-class) |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Search Requirements — FRS vs Inference
+
+| Requirement | FRS | Inference |
+|-------------|-----|-----------|
+| Search talents by name/skill `[§11]` | ✓ FRS | |
+| Feed/discovery by skill/category `[§11]` | ✓ FRS | |
+| Content/competition discovery `[§11]` | ✓ FRS (browse/filter) | |
+| Advanced search (skills/categories) | ✓ FRS — but **P1** `[§35]` | |
+| Keyword text search across content | | *inference — not explicitly required* |
+| Typo tolerance, autocomplete, facets | | *inference — not FRS* |
+| Relevance ranking | | *inference* |
+
+FRS-supported core = **filter-browse + name/skill lookups**. Everything beyond that is a product enhancement.
+
+### 2. PostgreSQL Capabilities for MVP
+
+| Capability | Covers |
+|------------|--------|
+| B-tree + composite indexes | Skill/category/status filters, competition browse, ordered lists |
+| `tsvector`/`tsquery` FTS + GIN | Text search on titles/descriptions/bios |
+| `pg_trgm` similarity + `ILIKE` | Fuzzy name matching, partial/substring, near-typo tolerance |
+| Relational filtering + joins | All scoped searches (competition×category×skill) |
+| `ts_rank` + weights | Simple relevance ordering |
+
+### 3. Alternatives Comparison
+
+| Criterion | PostgreSQL-native | Dedicated engine (ES/OS-class) | Managed search (Algolia-class) |
+|-----------|-------------------|--------------------------------|--------------------------------|
+| MVP capability fit | Covers all FRS-supported needs | Exceeds | Exceeds |
+| Relevance quality | Basic ts_rank | Strong | Strongest |
+| Typo/autocomplete | Trigram approximates | Native | Native |
+| Faceting | Manual SQL | Native | Native |
+| Infra/ops | Zero (same DB) | New cluster + sync pipeline | Vendor + sync pipeline |
+| Consistency | Immediate (same tx) | Eventual (index lag) | Eventual |
+| Consistency with authz/moderation | Trivial (same query scope) | Index must carry authz/visibility flags — drift risk | Same risk |
+| Cost | None added | Ops/cluster or vendor bill | Per-record pricing |
+| Failure modes | None new | Stale index, sync lag, divergence | Same + vendor outage |
+
+### 4. MVP Recommendation
+
+**PostgreSQL is the initial search engine.** Scope:
+
+- **Supported:** name/skill/title lookups, all filters/sorts, FTS on text fields, trigram fuzzy names
+- **Indexing:** B-tree/composite/GIN on queryable columns; `tsvector` generated columns where needed
+- **Limitations (stated honestly):** weaker relevance ranking, no native faceting, limited typo-tolerance, no managed synonyms — acceptable at MVP scale
+- **Migration triggers → dedicated engine:** (i) P1 "advanced search" requirements land `[FRS §35]`, (ii) measured query latency/index-maintenance cost exceeds PG comfort, (iii) autocomplete/faceted discovery become product priorities
+
+**"PostgreSQL first" ≠ "PostgreSQL forever"** — search is behind a query abstraction (§12).
+
+### 5. Search vs Discovery Feed
+
+Distinct concerns. **Discovery/feed** `[FRS §11]` is not keyword search — it's a ranked/filtered browse surface driven by domain read models (D5). **Recommendation:** feed = dedicated **read model/projection queries on PG** (denormalized display views, materialized where heavy) — *not* a recommendation engine; FRS names no personalization/recommendation requirement. Any future ranking algorithm is a separate product decision.
+
+### 6. Search Indexing
+
+**Simplest correct approach for MVP:** search fields are columns on the same tables (generated `tsvector` columns or views); indexes updated **transactionally** — no async pipeline, no sync drift, no broker. Async indexing is only relevant when a dedicated engine arrives (future decision).
+
+### 7. Consistency
+
+**Immediate consistency** — same transaction, same DB: new/updated/hidden/removed content reflects instantly; moderation/visibility changes take effect with the write. Eventual-consistency risk only appears *if* a dedicated engine is adopted later.
+
+### 8. Authorization & Privacy
+
+Search queries carry the same authz scoping as domain reads: private profiles excluded unless authorized `[§9]`; moderated/removed content filtered (`status` predicates); blocked users' content excluded; room-internal content never searchable by non-members `[§13]`. **Search never widens visibility** — enforced at query layer + tested (OD-07 authZ test matrix).
+
+### 9. Relevance/Ranking
+
+MVP = `ts_rank` + recency/popularity signals (likes/follows counts — FRS-supported engagement `[§4]`). No ML ranking — not FRS-supported, unjustified. Limitations acknowledged: ranking is basic; refinement = future work if product signals need.
+
+### 10. Autocomplete & Typo Tolerance
+
+**Not FRS requirements.** `pg_trgm` delivers acceptable partial-match for MVP. True autocomplete/typo-tolerance = future enhancement, and alone does **not** justify a search engine.
+
+### 11. Performance
+
+MVP search load is modest (browse+lookup, not high-QPS query). Indexed filters + GIN-FTS perform well at MVP volume. Triggers for concern: measurable p95 latency on search paths, or FTS index-maintenance cost under write load. Caching: none needed (OD-10); results computed live.
+
+### 12. Future Extraction
+
+Search sits behind a **query abstraction in D5** (read-model contracts: `SearchQuery` → `SearchResult`). Swapping PG → Elasticsearch later = implement the same contract against the engine; **domain DB stays authoritative** — engine is a disposable projection rebuilt from source-of-truth.
+
+### 13. Failure Handling
+
+Search unavailable → browse paths still work; heavy query timeout → circuit-breaker + simplified filter mode; PG is source of truth so there's no "stale index" at MVP. Future-engine divergence handled by rebuild-from-source when/if adopted.
+
+### 14. Security
+
+Validated/allowlisted filter params (OD-07); query length/wildcard caps; rate-limited search endpoints; authz filters mandatory in every search query; no sensitive data in indexed/searchable fields.
+
+### 15. Devin Recommendation
+
+**Option A — PostgreSQL-native search** (FTS + trigram + relational filters + generated tsvector columns) for MVP; discovery feed = PG read-model projections, not a recommendation engine; dedicated engine deferred with explicit triggers (P1 advanced-search landing, measured latency, facet/autocomplete product need).
+
+### Open Questions
+
+1. P1 "advanced search" scope — what does it require that PG can't provide? (shapes migration trigger)
+2. Search-result UX expectations — does product want autocomplete at launch?
+3. Discovery feed personalization expectations — is basic recency/popularity ordering sufficient, or does product want a ranking model later?
 
 ## OD-12 — Cloud / Deployment
 

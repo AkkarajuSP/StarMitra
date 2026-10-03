@@ -255,7 +255,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 | OD-08 | Media architecture — **accepted**, ADR-008 formalization pending | — |
 | OD-09 | Real-time — **accepted**, ADR-009 formalization pending | — |
 | OD-10 | Cache — **accepted**, ADR-010 formalization pending | — |
-| OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
+| OD-11 | Search — detailed review completed; recommendation = PostgreSQL-native (FTS + trigram + filters); dedicated engine deferred w/ triggers; formal decision pending | D5 implementation |
 | OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
 | OD-13 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |
 
