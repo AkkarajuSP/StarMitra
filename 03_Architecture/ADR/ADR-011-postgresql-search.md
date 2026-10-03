@@ -4,7 +4,7 @@
 |-------|---------|
 | ADR | ADR-011 |
 | Register entry | OD-11 — Search |
-| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** (per review; this ADR formalizes — final status ACCEPTED upon confirmation) |
+| Status | **ACCEPTED** |
 | Date | 2026-10-03 |
 | Baseline refs | §20 Decisions, SEARCH-ARCHITECTURE.md |
 | Related | ADR-003 (PG capabilities), ADR-007 (filter conventions), ADR-001 (D5 module) |

@@ -4,7 +4,7 @@
 |-------|---------|
 | ADR | ADR-012 |
 | Register entry | OD-12 — Cloud / Deployment |
-| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** (final ACCEPTED upon confirmation; provider remains open) |
+| Status | **ACCEPTED** — cloud provider selection remains an explicitly OPEN Product Owner decision (not an unresolved architecture decision) |
 | Date | 2026-10-03 |
 | Baseline refs | §16 Deployment, §20 Decisions, DEPLOYMENT-ARCHITECTURE.md |
 | Related | All ADRs — hosts the accepted stack |

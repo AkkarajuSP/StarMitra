@@ -4,7 +4,7 @@
 |-------|---------|
 | ADR | ADR-013 |
 | Register entry | OD-13 — Analytics |
-| Status | **ACCEPTED IN PRINCIPLE — PENDING FINAL ADR FORMALIZATION** (final ACCEPTED upon review confirmation) |
+| Status | **ACCEPTED** — product-analytics appetite, reporting freshness SLA, retention/anonymization policy and event-tracking consent/legal review remain OPEN Product Owner decisions |
 | Date | 2026-10-03 |
 | Baseline refs | §20 Decisions, ANALYTICS-ARCHITECTURE.md |
 | Related | ADR-003 (PG), ADR-001 (D15 module), ADR-007 (reporting APIs), ADR-010 (no-cache), ADR-012 (replica trigger) |

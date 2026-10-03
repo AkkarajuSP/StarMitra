@@ -241,6 +241,8 @@ Detail in [OBSERVABILITY-ARCHITECTURE.md](OBSERVABILITY-ARCHITECTURE.md).
 | OD-09 | Real-time | **WebSocket in monolith, isolated D6** — PG persistence-first, at-least-once + idempotent dedup, REST recovery, per-event authz; protocol detail open (spike); no broker; single-instance MVP |
 | OD-10 | Cache | **No distributed cache for MVP** — in-process + HTTP/CDN layers only; PG authoritative; Redis deferred (explicit triggers, separate decision) |
 | OD-11 | Search | **PostgreSQL-native** — FTS + trigram + relational filters; deterministic documented relevance; authz-scoped; dedicated engine deferred w/ triggers |
+| OD-12 | Cloud/deployment | **Managed container platform + managed PG + object storage + CDN** — single-region, no K8s; provider OPEN (PO decision); version-controlled IaC (Terraform recommended, not immutable); RTO/RPO + budget open |
+| OD-13 | Analytics | **PostgreSQL operational reporting** — direct queries + read-model/materialized rollups in D15; warehouse/third-party/event-streaming deferred w/ triggers |
 
 ### Future Infrastructure Decisions — NOT approved
 
@@ -248,19 +250,30 @@ The following are **not** automatically approved by OD-02 and each requires its 
 
 ### Open Decisions
 
-Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (single authoritative scheme).
+**All architecture decisions OD-01…OD-13 are accepted and formalized as ADR-001…ADR-013.** Remaining open items are Product Owner / implementation decisions (not architecture decisions):
 
-| # | Decision | Blocks |
-|---|----------|--------|
-| OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
-| OD-08 | Media architecture — **accepted**, ADR-008 formalization pending | — |
-| OD-09 | Real-time — **accepted**, ADR-009 formalization pending | — |
-| OD-10 | Cache — **accepted**, ADR-010 formalization pending | — |
-| OD-11 | Search — **accepted in principle**, ADR-011 formalization pending | — |
-| OD-12 | Cloud/deployment — **accepted in principle**: managed container + managed PG + object storage + CDN, single-region, no K8s; provider OPEN; IaC-as-principle (Terraform recommended, not immutable); RTO/RPO + budget open; ADR-012 formalization pending | Deployment design |
-| OD-13 | Analytics — detailed review completed; recommendation = PG operational reporting + rollup read models in D15; warehouse/third-party/event-streaming deferred w/ triggers; formal decision pending | D15 reporting |
+| Open item | Owner | Source |
+|-----------|-------|--------|
+| Cloud provider selection (AWS/GCP/Azure) | Product Owner | ADR-012 |
+| RTO/RPO targets | Product Owner | ADR-012 |
+| MVP infrastructure budget | Product Owner | ADR-012 |
+| Test/QA persistence need | Product Owner | ADR-012 |
+| SEO requirement at MVP | Product Owner | ADR-004 |
+| Password in addition to OTP | Product Owner | ADR-006 |
+| Admin/Judge MFA timing | Product/Security | ADR-006 |
+| Android+iOS release sequencing | Product Owner | ADR-005 |
+| Push provider / OTA tooling | Implementation | ADR-005 |
+| WS protocol detail (STOMP/native/Socket.IO) | Implementation spike | ADR-009 |
+| Presence/typing indicators | Product Owner | ADR-009 |
+| Media retention/deletion policies | Product Owner | ADR-008 |
+| Product-usage analytics appetite | Product Owner | ADR-013 |
+| Reporting freshness SLA | Product Owner | ADR-013 |
+| Analytics retention/anonymization policy | Product Owner | ADR-013 |
+| Future event-tracking consent/legal review | Product/Legal | ADR-013 |
+| Frontend library picks; job-queue lib; codegen tool | Implementation | ADR-002/004/007 |
+| Notification channel providers; module-as-service triggers; scale/availability targets | Product Owner | Register Open Questions |
 
-Tracked alongside: notification channel providers, target scale/availability/RTO-RPO numbers, and "any module as separate service at MVP" — see register Open Questions Q1–Q8 and OD-12. *(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
+*(OD numbering aligned to the register; OD-07 was inserted as API Architecture and the original sequence renumbered.)*
 
 ## 21. Architecture Decision Records
 
@@ -279,8 +292,8 @@ Formal ADRs — `03_Architecture/ADR/` (OD-01…OD-13 → ADR-001…ADR-013):
 | [ADR-009](../ADR/ADR-009-websocket-realtime.md) | Realtime — WebSocket in monolith | Accepted |
 | [ADR-010](../ADR/ADR-010-cache-strategy.md) | Cache — no distributed cache at MVP | Accepted |
 | [ADR-011](../ADR/ADR-011-postgresql-search.md) | Search — PostgreSQL-native | Accepted |
-| [ADR-012](../ADR/ADR-012-cloud-deployment.md) | Cloud/deployment — managed platform | Accepted in principle (provider open) |
-| [ADR-013](../ADR/ADR-013-postgresql-analytics.md) | Analytics — PG operational reporting | Accepted in principle |
+| [ADR-012](../ADR/ADR-012-cloud-deployment.md) | Cloud/deployment — managed platform | Accepted (provider selection open — PO decision) |
+| [ADR-013](../ADR/ADR-013-postgresql-analytics.md) | Analytics — PG operational reporting | Accepted |
 
 ## 22. FRS Traceability
 
