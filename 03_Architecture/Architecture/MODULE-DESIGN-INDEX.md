@@ -13,7 +13,7 @@ Per-module implementation-ready design specs. Each module is a bounded module of
 | 05 | Discovery/Search/Feed | [MODULE-DISCOVERY-SEARCH-FEED.md](MODULE-DISCOVERY-SEARCH-FEED.md) | Designed |
 | 06 | StarMitra Connect (Messaging) | [MODULE-STARMITRA-CONNECT.md](MODULE-STARMITRA-CONNECT.md) | Designed |
 | 07 | Creative Room / Collaboration | [MODULE-CREATIVE-ROOMS.md](MODULE-CREATIVE-ROOMS.md) | Designed |
-| 08 | Project Contribution Roles | — | Pending |
+| 08 | Portfolio | [MODULE-PORTFOLIO.md](MODULE-PORTFOLIO.md) | Designed |
 | 09 | Competition | — | Pending |
 | 10 | Submissions | — | Pending |
 | 11 | Voting | — | Pending |
