@@ -253,7 +253,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 | OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
 | OD-08 | Media architecture — **accepted**, ADR-008 formalization pending | — |
 | OD-09 | Real-time — **accepted**, ADR-009 formalization pending | — |
-| OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |
+| OD-10 | Cache — detailed review completed; recommendation = no distributed cache for MVP (in-process + HTTP/CDN only; Redis deferred with explicit triggers); formal decision pending | D12/scaling needs |
 | OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
 | OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
 | OD-13 | Analytics approach (in-app reporting vs warehouse) | D15 reporting |

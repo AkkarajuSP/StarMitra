@@ -41,7 +41,7 @@ Engineering                   → Devin
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated D6); protocol detail open; no broker** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
+| OD-10 | Cache | **No distributed cache for MVP — in-process cache for hot reference data only; Redis deferred with explicit triggers** | PROPOSED — PENDING REVIEW |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
 | OD-13 | Analytics | Operational reporting from transactional DB + lightweight product analytics; defer warehouse | PROPOSED — PENDING REVIEW |
@@ -1134,19 +1134,95 @@ Rejected: managed realtime platform (cost/lock-in), SSE/polling (insufficient), 
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-10 |
-| Decision | Does StarMitra need a dedicated cache (e.g., Redis) in MVP? |
-| Context | Candidate uses: session storage, rate limiting, competition config reads, leaderboards, hot profiles, temporary data. FRS demands correctness for votes/scores `[BR-14][FRS §22]` — caching must never corrupt results. |
-| FRS References | §18 voting, §22 scoring, §24 leaderboards, §36 NFRs |
-| Options | **A. No dedicated cache for MVP** (DB + app-level memoization). **B. Redis/Valkey from day one** for rate limiting + sessions + hot reads. **C. Managed cache** (ElastiCache/MemoryDB/Upstash-class). |
-| Advantages | **A:** zero extra infra; DB is single source of truth; no invalidation bugs; simplest. **B:** fast rate-limit counters, ephemeral locks, leaderboard ZSETs, session store, WS adapter (OD-09) when multi-instance. **C:** same as B without ops. |
-| Disadvantages | **A:** rate limiting lives in app memory (per-instance inaccuracy) or DB writes; hot reads hit DB. **B:** another moving part to run/secure/back-up; invalidation discipline needed; premature if traffic is modest. **C:** same + vendor cost. |
-| StarMitra Fit | **A for MVP:** no FRS requirement demands sub-ms reads; competition config is small/hot and memoizable in-process; vote/score correctness favors direct DB writes. **B earns entry when:** (i) multi-instance deploy makes in-memory rate-limiting/WS broadcast insufficient, or (ii) leaderboard/hot-read load is measured, or (iii) job queue needs Redis-class primitives (BullMQ does!). Note: if OD-02 adopts BullMQ, Redis arrives anyway — making B nearly free. |
-| Team Impact | A: none. B/C: small ops/monitoring addition. |
-| Cost/Complexity | A zero; B/C small infra + correctness discipline. |
-| Risks | Cache-serve stale competition state/leaderboards → integrity bugs. **Never cache:** pending vote/evaluation writes, rubric versions (immutable anyway), authZ decisions (or keep TTL seconds-level). Failure mode: cache down → degrade to DB, never fail closed on reads. |
-| Devin Recommendation | **A — not required for MVP as a standalone decision**; HOWEVER if OD-02's job queue (BullMQ-class) brings Redis along anyway, use it *then* for rate limiting + WS adapter + hot reads — i.e., "cache arrives as a byproduct, not as a decision." Document invalidation rules when introduced. |
+| Decision | Does StarMitra need caching — and at which layer — for MVP? Redis is explicitly NOT pre-approved. |
+| Context | FRS demands correctness for votes/evaluations/scores `[BR-14][FRS §22]` — caching must never corrupt authoritative state. No FRS requirement mandates sub-ms reads or shared caching. OD-09 did not approve Redis; this OD decides whether any cache is needed at all. |
+| FRS References | §18 voting, §20 rubrics, §22 scoring, §24 leaderboards, §36 NFRs |
+| Options | **A. No distributed cache — in-process cache for hot reference data only** · **B. Redis/Valkey** · **C. Managed cache (ElastiCache-class)** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Is Caching Actually Required?
+
+Layers that already satisfy most "cache" needs without distributed infrastructure:
+
+| Layer | Covers |
+|-------|--------|
+| PostgreSQL + indexes + query optimization | Nearly all MVP read paths — competition metadata, profiles, rubrics are small, hot, indexed |
+| JVM in-process cache (Caffeine-class via Spring `@Cacheable`) | Reference data (skill taxonomy, competition config, rubric versions — immutable anyway) |
+| HTTP/CDN caching (Cache-Control, ETag) | Public discovery/feed responses, static media delivery |
+| Browser/mobile caching | Client-side asset/feed caching |
+
+**MVP verdict:** single-instance monolith + indexed PostgreSQL handles every required path. **No distributed cache is required for MVP.**
+
+### 2. Cache Candidates — Classification
+
+| Candidate | Classification |
+|-----------|----------------|
+| Skill taxonomy, competition categories, published rubric versions | **Useful** — in-process (immutable/config-scale) |
+| Active competition metadata, round state | **Useful** — in-process, short TTL + explicit invalidation on transitions |
+| Public talent profiles, discovery/feed | Useful — HTTP/CDN first; in-process if needed |
+| Leaderboards/read models | **Future optimization** — PG materialized views/rollup tables first; Redis ZSET only if load demands |
+| Notification counts | Unnecessary — cheap indexed count queries |
+| Configuration | Useful — in-process (boot-time load + refresh) |
+| User-specific responses | **Never shared-cache** — see §8 |
+
+### 3. Technology Comparison
+
+| Option | MVP scale | Multi-instance | Invalidation | Ops cost | Failure | Verdict |
+|--------|-----------|----------------|--------------|----------|---------|---------|
+| **None + PG** | Sufficient | N/A | None | Zero | Simple | Baseline |
+| **In-process (Caffeine-class)** | Sufficient | Per-instance inconsistency for mutable data — acceptable only for immutable/short-TTL data | TTL + explicit evict | Zero | Falls back to DB | **Recommended** |
+| **Redis** | Overkill | Real shared cache | Complex | Moderate | New failure mode | **Deferred — triggers defined** |
+| **Managed cache** | Same as Redis + vendor | Same | Same | $$$ | Same | Deferred |
+
+### 4. Cache vs Database — Authoritative Boundaries
+
+PostgreSQL is sole source of truth. **Never cached as authoritative:** votes, submissions, judge evaluations, scores, rankings, competition state, messages, audit records, security/session state *(separate approval required for any session caching)*.
+
+### 5. Consistency Strategy (when in-process cache is introduced)
+
+Cache-aside + short TTL for config/reference data; explicit eviction on admin mutation events; no write-through/write-behind needed at MVP (no cache-owned writes, ever). Stale-while-revalidate acceptable for public discovery only.
+
+### 6. Competition-Specific Concerns
+
+| Data | Rule |
+|------|------|
+| Active competition metadata/round state | Cacheable in-process, short TTL, **invalidated on state transition** |
+| Live voting counts | **Never authoritative-cache** — aggregates computed on read or via rollup job; display may lag, decisions must not |
+| Score/ranking freshness | Computed transactional; cached *display* snapshots only after publication `[FRS §22]` |
+| Competition closing/round transitions | Always read live state — never serve from cache during transitions |
+
+### 7. Realtime Interaction
+
+WS connection state stays in-process (single-instance MVP per OD-09); message fan-out is in-memory within the module; presence/notification counts need no shared cache. **Multi-instance fan-out = future decision** (explicitly deferred in OD-09).
+
+### 8. Security
+
+Private profiles/media/submissions/judge data/moderation/authz decisions: **never shared-cache** — private responses are per-user and authz-scoped; any caching must be keyed per-user + invalidated on authz change. Shared caches serve only public/reference data.
+
+### 9. HTTP/CDN vs Application vs Distributed
+
+Distinct layers: HTTP/CDN handles edge caching of public content (`Cache-Control`, ETag, conditional GET); in-process handles hot reference data; distributed cache would only serve multi-instance scale. Don't conflate — each has its own invalidation model.
+
+### 10. Failure Behavior
+
+In-process cache unavailable → direct DB reads (correct, slower); stale entries bounded by TTL + explicit eviction; restart = cold cache rebuilt lazily; poisoning prevented by validation at write; invalidation failure degrades to TTL expiry. **Cache is always optional — DB is the fallback.**
+
+### 11. Recommendation
+
+**Option A — no distributed cache for MVP.** In-process caching (Spring `@Cacheable`/Caffeine-class — *library choice at implementation*) for hot reference data only; HTTP/CDN for public content; PG authoritative for everything else. **Redis deferred with explicit adoption triggers:**
+
+1. Multi-instance deployment needs shared rate-limiting / WS fan-out coordination
+2. Measured hot-read/leaderboard load exceeds what PG + replicas handle
+3. A concrete feature (sessions-at-scale, distributed locks) demands it
+
+Each trigger is a separate decision — Redis is **not** approved by this OD.
+
+### Open Questions
+
+1. Which job-queue library OD-02 adopts (if it brings Redis-class primitives, cache may arrive as byproduct — still requires the trigger review)
+2. Leaderboard freshness SLA — product input
+3. Notification-count pattern (badge polling vs push) — product input
 
 ## OD-11 — Search
 
