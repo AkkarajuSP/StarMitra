@@ -35,7 +35,7 @@ Engineering                   → Devin
 | OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-05 | Mobile technology | **React Native + TypeScript + Expo** — creator/audience scoped | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
+| OD-06 | AuthN/identity | **First-party Spring Security + OTP (FRS) + JWT access / opaque refresh; unified across clients** | PROPOSED — PENDING REVIEW |
 | OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
 | OD-08 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
 | OD-09 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
@@ -550,19 +550,120 @@ Google Play + Apple App Store; semantic app versioning + build numbers; OTA JS u
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-06 |
-| Decision | Authentication + identity approach: OTP auth, sessions/tokens, provider choice. |
-| Context | `[FRS §8]` mobile/email + OTP "or configured authentication mechanism"; password recovery where enabled; future social login; account states Active/Suspended/Blocked/Deactivated; **critical: TalentSkill ≠ SystemRole** — authN and authZ are separate `[BR-02]`; judge/admin may warrant stricter policy. |
-| FRS References | §6 roles, §8 authN, §30 audit, §36 security |
-| Options | **A. Managed identity provider w/ phone OTP** (Cognito, Firebase Auth, Auth0, Supabase-class). **B. In-house OTP module** (own challenge/verify + SMS aggregator). **C. Hybrid** — provider for users, in-house for judge/admin or vice versa. |
-| Advantages | **A:** battle-tested OTP/rate-limit/recovery/token machinery; MFA options for admin/judge; less custom security code; social login nearly free later. **B:** full control of UX + costs (SMS aggregator pricing); no vendor lock-in; OTP logic simple enough in principle. **C:** tailor per-surface security (e.g., stronger IdP MFA for admins). |
-| Disadvantages | **A:** per-MAU pricing grows with audience scale; provider quirks; migration pain if swapping. **B:** security surface you must own — OTP throttling, replay, enumeration, token issuance/recovery bugs are breach vectors; social login still external work. **C:** two auth systems to secure/maintain — complexity without clear gain at MVP. |
-| StarMitra Fit | **A:** FRS explicitly allows "configured authentication mechanism"; OTP-first is supported by Firebase/Cognito-class providers; keeps team focused on product. **B:** viable if SMS cost at scale is a deciding factor — but requires senior security review. **C:** premature. |
-| Team Impact | A: least auth code to own; B: ongoing auth-security ownership; C: double. |
-| Cost/Complexity | A: moderate $$ per MAU, low complexity. B: low $$ (SMS only), high risk/complexity. C: highest. |
-| Risks | A: vendor cost at audience scale → mitigation: keep identity behind adapter; exportable user store. B: OTP/abuse bugs → mitigation: senior review, proven libraries only. Either way: **authZ stays internal** — roles/permissions never delegated to provider claims alone; enforce UserSystemRole server-side `[BR-02]`. |
-| Devin Recommendation | **A** — managed identity provider supporting phone-OTP + email; JWT access + refresh tokens; **all authorization stays in-app via UserSystemRole**. Keep auth behind an abstraction so a swap (or adding in-house OTP later for cost) doesn't touch domain code. Admin/Judge: same provider + mandatory MFA policy. If cost review favors B, it must pass dedicated security review first. |
+| Decision | Authentication & session architecture for all clients: mechanism, token/session strategy, provider choice. |
+| Context | `[FRS §8]` mobile/email + OTP "or configured authentication mechanism"; secure login/logout; password reset where password auth enabled; optional social login *in future*; consent capture; account states Active/Suspended/Blocked/Deactivated. **Critical:** `TalentSkill ≠ SystemRole` — authN and authZ are separate `[BR-2][FRS §6]`. Judge/Admin surfaces warrant stricter policy (inference). |
+| FRS References | §6 system roles, §8 registration/auth, §30 audit, §36 security NFRs |
+| Options | **A. First-party Spring Security + OTP + JWT/refresh** · **B. Managed identity provider (Cognito/Firebase Auth/Auth0-class)** · **C. Hybrid** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Authentication Requirements `[FRS §8]`
+
+| Requirement | Approach |
+|-------------|----------|
+| Registration (mobile/email + OTP or configured mechanism) | OTP challenge → verify → account create; `OtpChallenge` records |
+| Sign-in / sign-out | OTP or password (configured) → issue token pair; sign-out revokes refresh |
+| Password handling | Optional credential — where enabled: bcrypt/argon2 hashing, recovery via verified OTP/mail link |
+| Account recovery | OTP to verified channel → reset/re-issue |
+| Email/phone verification | OTP is the verification mechanism itself |
+| Session lifecycle | Short-lived access + rotatable, revocable refresh; logout/inactivity expiry; account-status enforcement per request |
+
+### 2. Authorization Model `[FRS §6][BR-02]` — binding
+
+```text
+authZ input = UserSystemRole → SystemRole  (ONLY)
+Audience/User · Creator/Talent capability · Judge · Admin · Super Admin
+```
+
+System roles map to permission sets; resource-scoping adds judge-assignment, room-membership, content-visibility rules. **TalentSkill and ProjectContributionRole are never authz inputs.**
+
+### 3. Approach Comparison
+
+| Approach | For | Against | Verdict |
+|----------|-----|---------|---------|
+| **A. First-party: Spring Security, OTP + password(optional), JWT access + opaque DB-persisted refresh** | Full control of OTP UX/cost; zero new infra (PostgreSQL only — no Redis needed); aligns with OD-02/03; revocable sessions support account suspension immediately; FRS's "configured mechanism" fits | Team owns OTP/throttling/token security — real responsibility, mitigated by proven patterns + review | **Recommended** |
+| **B. Managed IdP (Cognito/Firebase Auth/Auth0-class)** | Battle-tested flows, MFA built-in, social login nearly free | Per-MAU cost at audience scale; another infra/service dependency requiring its own approval; OTP UX customization limits | Viable alternative — triggers a provider decision + cost review |
+| **C. Hybrid (IdP users + in-house admin/judge, or vice versa)** | Tailored per-surface | Two systems to secure — unjustified at MVP | Rejected |
+
+Session-based alternative (Spring session + cookie, no JWT): simpler revocation but awkward for React Native and WebSocket — rejected as the unified mechanism; cookies still used as the *transport* for web.
+
+### 4. Per-Client Strategy
+
+| Client | Transport | Storage | Notes |
+|--------|-----------|---------|-------|
+| Web SPA (public/app) | Access+refresh via **Secure httpOnly SameSite cookie** | Never in JS-accessible storage | CSRF token required for mutations |
+| React Native | `Authorization: Bearer` header | Secure enclave (Keychain/Keystore) | Cookies impractical; standard mobile pattern |
+| Admin web | Same cookie model + **mandatory MFA policy** *(inference recommendation — FRS doesn't mandate MFA)* | — | Stricter session TTL recommended |
+| Judge web | Same cookie model + MFA policy | — | Access only assigned evaluations `[FRS §19]` |
+| WebSocket | Token presented at handshake (header/subprotocol, not query-param-in-logs) | — | Server validates + scopes connection; reconnect re-auths |
+
+**Unified mechanism?** Yes — one credential + token system for all clients; only the **transport** differs (cookie vs bearer header). Separate auth systems per surface rejected.
+
+### 5. Security Requirements
+
+| Concern | Approach |
+|---------|----------|
+| Password hashing | bcrypt/argon2id where password enabled |
+| Credential protection | TLS-only; no password/OTP in logs |
+| Token storage | Web: httpOnly cookies; Mobile: secure enclave; Server: refresh hashed in DB |
+| Token rotation | Refresh rotation per use; reuse-detection → revoke family |
+| Revocation | DB-persisted refresh tokens → instant revoke (suspend/block `[FRS §8]`); short access TTL bounds risk |
+| CSRF | SameSite + CSRF token for cookie mutations |
+| XSS | React escaping + CSP; token never in JS-readable storage |
+| CORS | Explicit origin allowlist; credentials-scoped |
+| Brute-force/rate limiting | OTP attempt caps, per-IP+per-account throttling, progressive delays — **server-side app logic (no Redis required at MVP; Redis optional later — not approved)** |
+| Account lockout/recovery | Lockout on repeated failures; OTP-based recovery; state machine enforced at auth layer |
+| WebSocket auth | Handshake token validation; per-connection authz; close on revoke |
+| Audit `[FRS §30]` | Login attempts, OTP issuance, token refresh, role changes, status transitions → AuditLog |
+
+### 6. Stack Interaction
+
+- **Spring Security:** resource-server JWT validation + custom auth endpoints; method-level `@PreAuthorize` enforces system-role permissions.
+- **REST/OpenAPI:** `/auth/*` endpoints in contract; 401/403 semantics documented.
+- **WebSocket:** handshake interceptor validates token; connection principal = user.
+- **PostgreSQL + Flyway:** `AuthCredential`, `OtpChallenge`, `RefreshToken` tables — no additional infra.
+- **React web / RN:** codegen'd auth client; token refresh interceptor; secure storage adapters per platform.
+
+### 7–8. Identity Scope `[FRS §8]`
+
+- **First-party auth only for MVP** — FRS requires OTP/password-capable registration; social login is explicitly "optional in future" → design provider-abstraction now, implement later.
+- External IdP is **not** assumed required — nothing in FRS mandates it; Option B remains the fallback if cost/ops review favors outsourcing.
+
+### 9. Unified vs Per-Surface Auth
+
+One authentication mechanism, one identity (`User`), one authorization model — four transports only differ in token carriage. Judge/Admin differ only by **policy** (MFA, TTL) — not by separate systems.
+
+### 10. Security/Operational Trade-offs
+
+| | First-party (A) | Managed IdP (B) |
+|---|---|---|
+| Build cost | OTP + token lifecycle owned | Minimal |
+| Security risk | Team owns throttling/enumeration/replay defenses | Vendor-hardened |
+| Cost | SMS/email provider fees only | Per-MAU pricing at audience scale |
+| Lock-in | None | Migration pain later |
+| Revocation | Native (DB) | Provider-dependent |
+| Social login later | Manual add | Nearly free |
+
+### 11. Boundary Definitions — binding restatement
+
+```text
+Authentication  → "who are you" (OTP/password/token)
+Authorization   → "what may you do" (UserSystemRole → permissions) — NEVER talent data
+TalentSkill     → "what can you do creatively" — profile data, zero permissions
+ProjectContributionRole → "in what capacity on THIS project" — context, zero permissions
+```
+
+### Devin Recommendation
+
+**Option A — first-party Spring Security:** OTP per FRS (+ optional password), JWT access (short-lived) + opaque DB-persisted refresh tokens with rotation/revocation; web via httpOnly cookies + CSRF token, mobile via bearer + secure enclave; one unified mechanism; admin/judge same system + MFA policy recommendation; social login deferred behind provider abstraction; **no Redis/IdP infra implied.**
+
+### Open Questions
+
+1. SMS/OTP provider + volume/cost (register Q5)
+2. Password required in addition to OTP at MVP, or OTP-only?
+3. MFA for admin/judge — required at MVP or P1? *(inference — not FRS)*
+4. Session/TTL policies per surface
+5. Managed IdP revisit trigger (scale/cost threshold)
 
 ## OD-07 — Media Storage & Processing
 
