@@ -246,8 +246,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
-| OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
+| OD-06 | AuthN/session — detailed review completed; recommendation = first-party Spring Security + OTP + JWT/refresh, unified across clients; formal decision pending | D1 implementation |
 | OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
 | OD-08 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
 | OD-09 | Cache — Redis is **not** auto-approved | D12/scaling needs |
