@@ -30,7 +30,7 @@ class ProfileServiceTest {
         restriction = mock(ProfileRestrictionContract.class);
         service = new ProfileService(profiles,
                 (userId) -> List.of(new UserSkillReadContract.SkillView(UUID.randomUUID(), "Dance", "ADVANCED")),
-                restriction, mock(AuditService.class));
+                restriction, (mediaId, ownerId) -> true, mock(AuditService.class));
     }
 
     private UserProfileEntity publicProfile(UUID userId) {

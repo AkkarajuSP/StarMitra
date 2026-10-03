@@ -1,5 +1,6 @@
 package com.starmitra.modules.profile.application;
 
+import com.starmitra.modules.media.application.MediaReferenceContract;
 import com.starmitra.modules.moderation.application.ProfileRestrictionContract;
 import com.starmitra.modules.profile.persistence.UserProfileEntity;
 import com.starmitra.modules.profile.persistence.UserProfileRepository;
@@ -30,13 +31,16 @@ public class ProfileService {
     private final UserProfileRepository profiles;
     private final UserSkillReadContract skills;
     private final ProfileRestrictionContract restriction;
+    private final MediaReferenceContract mediaRefs;
     private final AuditService audit;
 
     public ProfileService(UserProfileRepository profiles, UserSkillReadContract skills,
-                          ProfileRestrictionContract restriction, AuditService audit) {
+                          ProfileRestrictionContract restriction, MediaReferenceContract mediaRefs,
+                          AuditService audit) {
         this.profiles = profiles;
         this.skills = skills;
         this.restriction = restriction;
+        this.mediaRefs = mediaRefs;
         this.audit = audit;
     }
 
@@ -76,6 +80,9 @@ public class ProfileService {
         UserProfileEntity p = profileOrInit(userId, defaultDisplayName);
         if (ifMatch != null && !ifMatch.equals(p.etag())) {
             throw new ApiException(ErrorCode.CONFLICT_VERSION, "Profile was modified concurrently");
+        }
+        if (cmd.avatarMediaId() != null && !mediaRefs.isUsableBy(cmd.avatarMediaId(), userId)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Avatar media not usable");
         }
         boolean visibilityChanged = cmd.visibilityState() != null
                 && !cmd.visibilityState().equals(p.getVisibilityState().name());
