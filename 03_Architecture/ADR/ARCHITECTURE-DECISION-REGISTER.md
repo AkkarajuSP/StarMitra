@@ -40,7 +40,7 @@ Engineering                   → Devin
 | OD-06 | AuthN/identity | **First-party Spring Security + OTP + JWT access / opaque refresh; unified across clients** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-07 | API architecture/contract | **REST + OpenAPI, `/api/v1` versioning, RFC 9457, cursor/offset pagination** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-08 | Media storage/processing | **Object storage + direct-to-storage upload + async processing + CDN — provider-neutral** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-09 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
+| OD-09 | Real-time | **WebSocket inside Spring Boot monolith (isolated module); protocol detail open; no broker** | PROPOSED — PENDING REVIEW |
 | OD-10 | Cache | Not required for MVP — defer Redis until a concrete trigger | PROPOSED — PENDING REVIEW |
 | OD-11 | Search | PostgreSQL FTS + trigram for MVP; dedicated engine later | PROPOSED — PENDING REVIEW |
 | OD-12 | Cloud/deployment | Containerized on one major cloud; provider chosen on cost/credits | PROPOSED — PENDING REVIEW |
@@ -1001,19 +1001,107 @@ Media module isolated behind storage/processing adapters — extraction = lift m
 | Field | Content |
 |-------|---------|
 | Decision ID | OD-09 |
-| Decision | Transport/architecture for StarMitra Connect messaging `[FRS §12]` and near-real-time surfaces. |
-| Context | **MVP:** 1:1 + group/project conversations, delivery/read status, project-linked threads `[FRS §12]`; notification push optional `[FRS §25]`; live vote counts only where admin-enabled `[FRS §18]`. **Future (P2):** calls, live streaming `[FRS §4.2][§35]`. |
-| FRS References | §12 Connect, §18 vote counts, §25 notifications, §35 priorities |
-| Options | **A. WebSocket in the backend** (Socket.IO-class, in monolith). **B. Managed realtime platform** (Pusher/Ably/Stream Chat/Firebase RTDB-class). **C. Polling/SSE only.** |
-| Advantages | **A:** no vendor cost; fits monolith; full control of events/auth; Socket.IO handles reconnect/fallback; delivery+read receipts straightforward. **B:** zero realtime ops; SDKs handle presence/typing/receipts; some offer moderation. **C:** simplest; no persistent connections; adequate for notifications. |
-| Disadvantages | **A:** you own connection scaling, sticky sessions, heartbeat/reconnect edge cases; horizontal scaling needs adapter (e.g., Redis pub/sub — interacts with OD-10). **B:** per-connection/message pricing at scale; chat UX lock-in; less control. **C:** chat latency perceived as "not real-time"; read receipts awkward; mobile battery with polling. |
-| StarMitra Fit | **A for MVP:** chat is core `[PD-07]`; WS module isolated in monolith, extractable later (OD-01 hybrid path). B justified only if ops capacity is near zero. C fails UX expectation for chat. **Future capability:** live video/calls explicitly P2 — no platform for it now. |
-| Team Impact | A: one WS module + adapter complexity when multi-instance. B: least ops. C: none. |
-| Cost/Complexity | A low-medium; B low build/high recurring; C low. |
-| Risks | A: connection-scaling pain later → mitigate: isolate messaging module behind clean interface; add Redis adapter only when multi-instance (ties to OD-10 trigger). B: lock-in rewrites. |
-| Devin Recommendation | **A — Socket.IO-class WebSocket inside the backend** for MVP chat + optional live counters; **defer** any managed realtime/broker platform until multi-instance scaling or feature needs (presence, typing indicators at scale) justify it. Messaging stays an isolated module for future extraction (OD-01). |
+| Decision | Realtime transport/architecture for StarMitra Connect `[FRS §12]` and realtime surfaces — inside the OD-01 monolith, isolated for extraction. |
+| Context | FRS §12 requires: 1:1 + group/project conversations, text + media attachments, timestamps, delivery + read status, project-linked conversations, notifications integration, report/block. **Future (out of MVP):** live video/audio, calls, live streaming, realtime collaborative editing `[FRS §4.2][§35]`. |
+| FRS References | §12 Connect, §18 live vote counts (optional), §25 notifications, §35 priorities |
+| Options | **A. WebSocket in the Spring Boot backend (isolated module)** · **B. Managed realtime platform (Pusher/Ably/Stream Chat-class)** · **C. SSE/long-polling only** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1. Realtime Scope
+
+| MVP `[FRS §12]` | Future — explicitly out of scope |
+|-----------------|--------------------------------|
+| Messaging: 1:1, group/project, text, attachments, timestamps, delivery + read status, conversation updates, notification integration | Live video/audio, calls, live streaming, realtime collaborative editing, presence/typing *(not FRS-mandated at MVP — recommendations only if product wants them)* |
+
+### 2. Approach Comparison
+
+| Approach | For | Against | Verdict |
+|----------|-----|---------|---------|
+| **A. WebSocket in Spring Boot** | Bidirectional events; full control of auth/semantics; zero vendor cost; isolated module → extraction path (OD-01); Spring WebSocket native | You own connection lifecycle/scaling | **Recommended** |
+| **B. Managed realtime platform** | Zero ops, SDKs solve receipts/presence | Per-connection/message pricing at chat scale; vendor lock-in on a core capability; new infra dependency requiring separate approval | Rejected for MVP |
+| **C. SSE / polling only** | Simplest; server-push only | Weak for chat (client→server needs REST anyway); awkward delivery/read receipt semantics; poor mobile battery | Rejected — insufficient for chat UX |
+
+**Transport/library sub-decision — kept open:** *Spring WebSocket (native WS)* vs *STOMP-over-WebSocket* vs *Socket.IO*. Trade-offs: STOMP gives built-in pub/sub + destination addressing (maps cleanly to conversations/topics) but heavier client libs; native WS is leanest (custom event protocol, more code); Socket.IO adds reconnect/fallback conveniences but brings a Node-style abstraction into Spring (Netty-socketio-class server exists but adds dependency). **Recommendation: evaluate STOMP-over-WebSocket first (natural fit for conversation-topic routing); finalize at implementation.** Not auto-approved.
+
+### 3. Protocol Recommendation
+
+**WebSocket (transport) — recommended.** Protocol detail (STOMP vs native frames) stays open pending a small implementation spike. Compatibility: browsers + React Native support WS natively; auth via handshake token per OD-06; reconnect = client-resume via REST history + event cursor.
+
+### 4. Spring Boot Integration
+
+Spring WebSocket/STOMP handlers inside the messaging module (D6); Spring Security at handshake (OD-06); REST APIs remain command surface; PostgreSQL is message store; module boundary enforced per OD-01 (messaging owns its tables; other modules read via contracts).
+
+### 5. REST vs WebSocket Responsibilities
+
+| REST (commands/history) | WebSocket (realtime events) |
+|-------------------------|------------------------------|
+| Conversation create/list, message history + pagination, attachment initiation, send-message (acceptable), block/report, admin ops | `message.new`, `message.delivered`, `message.read`, conversation updates, in-app notification events, live counters where enabled `[FRS §18]` |
+
+*Typing indicators/presence:* **not FRS-mandated** — optional enhancement, separate product decision.
+
+### 6. Delivery Semantics
+
+**At-least-once transport + idempotent processing.** Message ID server-assigned (UUID); client carries a client-generated `clientMessageId` for dedup on retry (idempotent-send via unique constraint — OD-07 idempotency rules apply). Server ACK confirms persistence → delivered/read events are state transitions. **No exactly-once claims** — dedup makes it effectively-once.
+
+### 7. Persistence vs Transport
+
+**WebSocket is transport, not storage.** Messages persist to PostgreSQL first (`Conversation`, `ConversationParticipant`, `Message`, `MessageAttachment`, `MessageReceipt`), then fan-out to connected members. Offline clients get history via REST on resume. Durable state independent of connection state.
+
+### 8. Ordering
+
+**Minimum necessary: per-conversation ordering** via conversation-scoped sequence number (or timestamp+ID tiebreak). No global ordering; per-sender subsumed by conversation order. *Recommendation — FRS doesn't specify ordering.*
+
+### 9. Reconnection
+
+Client holds `lastSeenEventId`/message cursor; on reconnect → REST fetch `?after=<cursor>` → resume WS. Covers: network loss, mobile backgrounding, tab suspension, server restart. Missed-message recovery is a **read-path**, not replay — durable store is source of truth.
+
+### 10. Delivery/Read Status
+
+FRS requires sent/delivered/read states `[FRS §12]`. Implementation model *(recommendation)*: `MessageReceipt` per recipient (`deliveredAt`, `readAt`); single-user view shows aggregate. States are FRS requirements; the per-recipient receipt table is the architecture mechanism.
+
+### 11. Authentication & Authorization
+
+Handshake validates access token/session (OD-06); per-connection principal; **conversation-participant check** gates every event (join/send/receipt); suspended/blocked users → connection refused/closed on revocation `[FRS §8]`; project/room membership derived from domain authz — **talent skills grant no messaging permissions** `[BR-2]`.
+
+### 12. Attachments (aligns with OD-08)
+
+Message → `MessageAttachment` metadata → media upload via pre-signed URL (OD-08 flow) → attachment references media ID; WS message carries attachment *metadata*, never binaries. Access = conversation-membership + media visibility.
+
+### 13. Notifications Interaction
+
+In-app realtime notification = WS event (same channel). Push notification (when user offline) = notification service trigger (D13) — **push provider is a separate decision, not selected here.** Email/SMS deferred per NOTIFICATION-ARCHITECTURE.
+
+### 14. Scaling
+
+Single-instance WS is sufficient for MVP (chat volumes modest); multi-instance later needs **fan-out coordination** (sticky sessions or a pub/sub adapter — e.g., Redis/Kafka) — **explicitly a future dependency requiring a separate decision, not approved now.** Module isolation makes swapping in a distributed adapter a config-level change, not a rewrite.
+
+### 15. Failure Handling
+
+Disconnected client → messages queue in DB, delivered on resume; server restart → clients reconnect + REST catch-up; duplicates → idempotent dedup via clientMessageId; persistence failure → send fails with error (never "ghost-sent"); invalid authz → send rejected; expired creds → connection challenged/closed, re-auth.
+
+### 16. Security
+
+Handshake auth + per-event authz; connection limits per user; message size caps; rate limits on sends; block/report `[FRS §12]` enforced at authz layer; attachment validation per OD-08; idle-connection timeouts; resource-exhaustion guards; audit events for moderation-relevant actions `[FRS §30]`.
+
+### 17. Future Extraction
+
+Messaging module is OD-01's named extraction candidate: isolated tables, internal contracts for cross-domain reads, WS endpoint namespaced under `/ws/messaging`, REST under `/api/v1/conversations` — extraction = lift module + endpoint; domain code unchanged.
+
+### 18. Alternatives Recap
+
+Rejected: managed realtime platform (cost/lock-in), SSE/polling (insufficient), broker-backed distribution (premature), separate messaging service (violates OD-01). **Recommended: A.**
+
+### Devin Recommendation
+
+**Option A — WebSocket inside the Spring Boot monolith, isolated messaging module (D6), PostgreSQL persistence, at-least-once + idempotent dedup.** Protocol detail (STOMP vs native) deferred to a small implementation spike — not auto-selected.
+
+### Open Questions
+
+1. STOMP-over-WS vs native WS frames vs Socket.IO — implementation spike decides
+2. Presence/typing indicators — product decision (not FRS)
+3. Multi-instance fan-out mechanism — future infra decision when scale demands (ties to OD-10 cache / OD-12 deployment)
+4. Push provider — separate decision (OD-12-adjacent)
 
 ## OD-10 — Cache
 

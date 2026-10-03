@@ -251,7 +251,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 |---|----------|--------|
 | OD-07 | API architecture/contract — **accepted**, ADR-007 formalization pending | API design |
 | OD-08 | Media architecture — **accepted**, ADR-008 formalization pending | — |
-| OD-09 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |
+| OD-09 | Real-time — detailed review completed; recommendation = WebSocket inside monolith (isolated D6, PG persistence, no broker); protocol detail open; formal decision pending | D6 implementation |
 | OD-10 | Cache — Redis is **not** auto-approved | D12/scaling needs |
 | OD-11 | Search (DB FTS vs dedicated engine) | D5 implementation |
 | OD-12 | Cloud provider + compute (Kubernetes/Service Mesh **not** auto-approved) | Deployment design |
