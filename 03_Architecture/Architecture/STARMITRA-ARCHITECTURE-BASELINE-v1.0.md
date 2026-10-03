@@ -119,7 +119,7 @@ Authorization checks MUST read `UserSystemRole` only. `TalentSkill`, `ProjectCon
 
 | Client | Stack direction (proposed, open) | Notes |
 |--------|----------------------------------|-------|
-| Mobile | Cross-platform framework — `[Open]` | FRS is mobile-first; native vs cross-platform is an open ADR |
+| Mobile | React Native + TS recommended — `[OD-05 pending]` | FRS §5 scope: creator/audience; admin/judge remain web |
 | Public web | React + TS + Vite SPA `[Accepted]`; SSR/prerender carve-out only if SEO confirmed critical | Discovery crawlability is inference, not FRS — open sub-decision |
 | Admin web | SPA — `[Proposed]` | Configuration-heavy; form-driven UI for rubric builder |
 | Judge web | SPA, may share codebase/components with Admin web — `[Proposed]` | Focused workflow: assigned entries → dynamic form → submit |
@@ -245,7 +245,7 @@ Numbering aligns with `03_Architecture/ADR/ARCHITECTURE-DECISION-REGISTER.md` (s
 
 | # | Decision | Blocks |
 |---|----------|--------|
-| OD-05 | Mobile stack (native vs cross-platform) | Mobile implementation |
+| OD-05 | Mobile stack — detailed review completed; recommendation = React Native + TS + Expo (creator/audience scope per FRS §5); formal decision pending | Mobile implementation |
 | OD-06 | Identity/OTP provider (managed vs in-house) | D1 implementation |
 | OD-07 | Media storage + CDN + transcoding providers | D3 implementation |
 | OD-08 | Real-time mechanism detail (within accepted WebSocket capability) | D6 implementation |

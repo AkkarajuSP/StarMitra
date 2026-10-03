@@ -34,7 +34,7 @@ Engineering                   → Devin
 | OD-02 | Backend technology | **Java 17+ / Spring Boot 3.x** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-03 | Primary database | **PostgreSQL** | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
 | OD-04 | Web frontend | **React + TypeScript + Vite SPA** (all four surfaces, route-group separation); SEO sub-decision open | **ACCEPTED — PENDING FINAL ADR FORMALIZATION** |
-| OD-05 | Mobile technology | React Native (Expo) — Flutter strongest alternative | PROPOSED — PENDING REVIEW |
+| OD-05 | Mobile technology | **React Native (Expo)** — creator/audience scoped app; Flutter strongest alternative | PROPOSED — PENDING REVIEW |
 | OD-06 | AuthN/identity | Managed identity provider w/ phone OTP + JWT/refresh; RBAC internal | PROPOSED — PENDING REVIEW |
 | OD-07 | Media storage/processing | Object storage + CDN + managed transcoding behind adapter | PROPOSED — PENDING REVIEW |
 | OD-08 | Real-time | WebSocket (Socket.IO-class) inside backend for MVP | PROPOSED — PENDING REVIEW |
@@ -433,18 +433,103 @@ Component-driven design system implementing the brand tokens; domain-mirrored fe
 |-------|---------|
 | Decision ID | OD-05 |
 | Decision | Mobile strategy for the mobile-first Audience+Creator app `[FRS §5]`. |
-| Context | Requires camera/microphone media capture & upload, push notifications, smooth feed/discovery UX, chat, competition flows `[FRS §5][§10][§12][§25]`; Android+iOS eventually; offline niceties; small team. |
-| FRS References | §5 mobile app, §10 media, §12 messaging, §25 notifications |
-| Options | **A. React Native (+Expo).** **B. Flutter.** **C. Native (Kotlin + Swift).** **D. PWA only.** |
-| Advantages | **A:** shares TypeScript/React mental model + some logic with OD-04 web; one team; Expo eases camera/media/notifications/OTA updates; mature (Meta, Shopify-class usage). **B:** best-in-class UI consistency + performance (own renderer); excellent animation; single codebase incl. possible web/desktop. **C:** peak performance; zero framework impedance for camera/media edge cases. **D:** zero install friction; one codebase; instant updates. |
-| Disadvantages | **A:** bridge/native-module edge cases; heavy media editing feels less native; performance good not great. **B:** Dart = separate language/ecosystem from web stack; hiring smaller; can't share TS logic. **C:** two codebases, two skill sets — ~2x cost for a small team. **D:** iOS PWA limits (push landed but constrained); no store presence; weaker camera/media UX; doesn't feel "mobile-first premium". |
-| StarMitra Fit | **A:** aligns with OD-02/OD-04 (TypeScript everywhere) — shared types, shared devs; covers all FRS mobile needs including media upload + push. **B:** strong if UI polish is judged paramount and team accepts Dart. **C:** right answer at 10x scale, wrong at MVP. **D:** insufficient for FRS mobile-first intent. |
-| Team Impact | A: web devs contribute directly. B: learn Dart (easy, but separate). C: hire/staff 2 tracks. D: none added. |
-| Cost/Complexity | A lowest-effective given TS stack; B similar raw cost but splits languages; C highest; D lowest but fails product goals. |
-| Risks | A: niche media edge cases need native modules (Expo dev-client mitigates). B: second-language overhead long-term. Both: app-store review cycles slow iteration (OTA mitigates A; CodePush-class for both). |
-| Devin Recommendation | **A — React Native with Expo** — given OD-02/OD-04 = TypeScript/React. If review favors UI-perfection over stack unity, **B (Flutter)** is the credible challenger. Reject C for MVP; D doesn't meet FRS intent. |
+| Context | `[FRS §5]` names the **Mobile App** as the primary channel for Audience and Creators: "create, upload, discover, engage, communicate, participate." FRS does **not** specify mobile implementation details — all technology evaluation below is architecture recommendation/inference. |
+| FRS References | §5 channels, §9–10 profile/portfolio/media, §11 discovery, §12 Connect, §13 rooms, §15–18 competitions/submissions/voting, §25 notifications, §26 moderation/reporting, §35 priorities |
+| Options | **A. React Native + TypeScript (+Expo)** · **B. Flutter/Dart** · **C. Native (Kotlin + Swift)** · **D. Responsive web only / PWA** |
 | Status | PROPOSED — PENDING PRODUCT/TECHNICAL REVIEW |
 | Decision Owner | Product + Technical Review |
+
+### 1–2. Approach & Alternatives
+
+| Option | Fit for StarMitra | Verdict |
+|--------|-------------------|---------|
+| **A. React Native + TS** | One language with OD-04 web + OD-02 codegen types; mature media/push/notifications ecosystem (Expo); one team can cover web+mobile | **Recommended** |
+| **B. Flutter** | Best UI consistency/performance (own renderer); strong animation for a "premium" brand feel; but separate Dart stack — no shared code or devs with web | Strong challenger — see §8 |
+| **C. Native (Kotlin+Swift)** | Peak performance, zero framework impedance for camera/media | Rejected for MVP — ~2× cost, two codebases |
+| **D. Responsive web / PWA only** | Zero new stack | Rejected — fails `[FRS §5]` "Mobile App" channel intent; iOS PWA limits (push, media UX); no store presence |
+
+### 3. FRS Requirement Coverage (mobile-relevant `[FRS §5]`)
+
+| FRS capability | RN coverage | Flutter coverage |
+|----------------|-------------|------------------|
+| Auth (OTP) `[§8]` | Secure-store + OTP UX — mature | Equally capable |
+| Profile + multi-skills `[§7][§9]` | Standard | Standard |
+| Portfolio/media `[§9][§10]` | Camera/gallery pickers, direct-to-storage upload | Equal |
+| Discovery/feed `[§11]` | FlatList patterns; FlashList for perf | Excellent scroll perf |
+| Likes/comments/follows `[§4][§11]` | Standard | Standard |
+| StarMitra Connect `[§12]` | WS client + chat UI; delivery/read receipts | Equal |
+| Creative Rooms `[§13]` | Standard screens | Standard |
+| Competitions/submissions `[§15–17]` | Media capture + upload + status tracking | Equal |
+| Audience voting `[§18]` | Standard | Standard |
+| Notifications `[§25]` | FCM/APNs via Expo Notifications-class | firebase_messaging-class |
+| Moderation/reporting `[§26]` | Standard | Standard |
+
+### 4. Explicitly Out of Mobile Scope (web/admin/judge surfaces)
+
+`[FRS §5]` — **Admin Web** and **Judge Web** are separate channels. Mobile scope excludes: admin configuration, rubric builder, competition ops, moderation console, judge evaluation workflows, analytics dashboards. *(Any future "admin-on-mobile" is a product decision, not assumed.)*
+
+### 5. Cross-Cutting Evaluation
+
+| Concern | React Native | Flutter |
+|---------|--------------|---------|
+| Shared code with React web | **Types + domain logic** (API client, models, validation schemas) shared via TS — real but partial; no UI sharing | None |
+| UI consistency | Good; platform-idiomatic | Best-in-class pixel consistency |
+| Native capabilities | Mature bridge + Expo modules (camera, mic, secure store, notifications) | Strong plugin ecosystem |
+| Media capture/upload | Camera/gallery → pre-signed direct upload (backend never proxies) | Equal |
+| Push notifications | FCM/APNs — Expo-class services; **provider choice = future decision, not approved** | Equal |
+| Deep linking | Universal/app links standard | Standard |
+| Performance | Good for feed/media; heavy editing needs native modules | Slightly better animation/render perf |
+| Offline | Cache images + queue actions; FRS doesn't mandate offline — *inference: nice-to-have* | Equal |
+| App-store deployment | Store review cycles; OTA updates (EAS/CodePush-class — **tooling decision pending**) | Same, CodePush-class needed for OTA |
+| Testing | Jest + RNTL + Detox/Maestro E2E + emulator CI | flutter_test + integration_test + Patrol-class |
+| Maintainability | TS + React patterns — team carries web skills | Dart learning; separate lint/test/docs toolchain |
+| Skill requirements | React/TS (same as OD-04) | Dart/Flutter (new) |
+| Future scalability | Bridge/perf edge cases at heavy media scale; module extraction unaffected | Scales well; lock-in to Dart ecosystem |
+
+### 6. Initial Scope — A/B/C Analysis
+
+| Option | Verdict |
+|--------|---------|
+| **A. Full feature parity** | Rejected — FRS assigns admin/judge to web `[§5]`; parity would duplicate portal surface area for no user need |
+| **B. Creator/audience focused** | **Recommended** — exactly `[FRS §5]`'s mobile scope: create, upload, discover, engage, communicate, participate |
+| **C. Phased subset + web for admin/judge** | Same as B in practice — admin/judge stay web permanently (not phased); creator features could phase if timeline demands: P0 = auth/profile/feed/upload/competition/vote, P1 = rooms/messaging depth |
+
+### 7. Backend Communication
+
+REST/OpenAPI → codegen'd TS client (same generator as web); WebSocket via dedicated realtime client module (isolation per OD-02/OD-04); auth tokens per OD-06 in secure enclave storage; media upload via pre-signed URLs direct to storage; notifications via platform push (FCM/APNs) → backend notification service.
+
+### 8. Does RN Gain Real Benefit from React Web Baseline?
+
+**Yes, but precisely:** shared TypeScript types/domain logic (API client, models, validation), one skill pool, shared design tokens/patterns ported to RN styles, unified lint/test/toolchain. **Not** UI components or screens — those are rewritten. Quantified: ~language+logic sharing, not code reuse of UI. If UI-perfection is judged more valuable than stack unity, **Flutter's explicit cost = a second language (Dart), separate toolchain, separate hiring** — but arguably better visual polish.
+
+### 9. Recommendation
+
+**React Native + TypeScript + Expo (managed workflow, ejectable if needed)** — creator/audience scope per `[FRS §5]`. Strongest alternative: **Flutter** if premium-UI consistency outweighs stack consolidation (explicitly trading a separate Dart stack). Reject native (cost) and PWA-only (fails FRS channel intent). Expo/EAS vs bare RN and push-provider choice are **implementation-level decisions, not approved here**.
+
+### 10. Security Considerations
+
+- Tokens in platform secure storage (Keychain/Keystore via expo-secure-store-class); never AsyncStorage/plain prefs
+- Biometric unlock = optional convenience layer, not a credential store change — *inference*
+- Secure media via short-lived signed URLs
+- Deep links validated server-side; auth-gated screens never trust link params alone
+- Authorization always server-enforced `[BR-02]`; client hides, never grants
+- Certificate pinning — optional hardening, future decision
+
+### 11. Testing Strategy
+
+Unit (Jest), component (React Native Testing Library), API-mock (MSW against OpenAPI), E2E on emulators/simulators + farmed-device runs for critical flows (upload, vote, chat), store-release smoke tests.
+
+### 12. Deployment/Release
+
+Google Play + Apple App Store; semantic app versioning + build numbers; OTA JS updates for hotfixes (tooling pending); CI = build per platform + store upload automation (EAS/Fastlane-class — pending); staged rollouts.
+
+### Open Questions
+
+1. Android+iOS both at MVP, or Android-first (market/demographic input)? — **Q4 in register**
+2. Push notification provider/tooling choice — future infra decision
+3. OTA update tooling (EAS vs alternatives)
+4. Team RN vs Flutter skill availability
+5. Media-edge cases (trimming/editing) — does MVP need native-module-level capture UX? `[FRS §4.2]` says advanced editing is out-of-MVP
 
 ## OD-06 — Authentication / Identity
 
