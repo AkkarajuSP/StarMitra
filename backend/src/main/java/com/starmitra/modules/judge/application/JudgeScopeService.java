@@ -68,6 +68,17 @@ public class JudgeScopeService {
         }
     }
 
+    /** Resolve the covering assignment (its id links evaluations to scope) or CROSS_SCOPE_DENIED. */
+    @Transactional(readOnly = true)
+    public AssignmentView requireScopedAssignment(UUID judgeId, UUID competitionId,
+                                                  UUID categoryId, UUID roundId) {
+        return assignments.resolveScope(judgeId, competitionId, categoryId, roundId).stream()
+                .findFirst()
+                .map(a -> new AssignmentView(a.getId(), a.getCompetitionId(), a.getCategoryId(),
+                        a.getRoundId(), "ACTIVE"))
+                .orElseThrow(() -> new ApiException(ErrorCode.CROSS_SCOPE_DENIED));
+    }
+
     @Transactional(readOnly = true)
     public List<AssignmentView> activeAssignments(UUID judgeId) {
         return assignments.findByJudgeIdAndStatus(judgeId, "ACTIVE").stream()

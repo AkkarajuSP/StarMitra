@@ -248,7 +248,7 @@ public class CompetitionService implements CompetitionStructureContract {
     public java.util.Optional<RoundWindow> roundWindow(UUID roundId) {
         return rounds.findById(roundId)
                 .map(r -> new RoundWindow(r.getId(), r.getCompetitionId(),
-                        r.getStartAt(), r.getEndAt(), r.getVoteConfigId()));
+                        r.getStartAt(), r.getEndAt(), r.getVoteConfigId(), r.getRubricVersionId()));
     }
 
     // ---------- internals ----------
