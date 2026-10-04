@@ -30,7 +30,7 @@ class SocialServiceTest {
         comments = mock(CommentRepository.class);
         counters = mock(EngagementCounterRepository.class);
         service = new SocialService(follows, likes, comments, counters,
-                mediaRef(true), mock(AuditService.class));
+                mediaRef(true), (itemId, caller) -> true, mock(AuditService.class));
     }
 
     @Test
@@ -58,7 +58,7 @@ class SocialServiceTest {
     @Test
     void likeOnNonDeliverableMediaRejected() {
         var svc = new SocialService(follows, likes, comments, counters,
-                mediaRef(false), mock(AuditService.class));
+                mediaRef(false), (itemId, caller) -> true, mock(AuditService.class));
         var e = assertThrows(ApiException.class,
                 () -> svc.like(me, "MEDIA", UUID.randomUUID()));
         assertEquals(ErrorCode.NOT_FOUND, e.code());

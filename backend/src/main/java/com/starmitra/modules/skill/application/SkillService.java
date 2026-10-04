@@ -25,7 +25,7 @@ import java.util.UUID;
  * pk(user_id, skill_id)); addMySkill is PUT-upsert — naturally idempotent.
  */
 @Service
-public class SkillService {
+public class SkillService implements SkillTaxonomyContract {
 
     private final TalentSkillRepository skills;
     private final SkillProficiencyRepository proficiencies;
@@ -145,6 +145,12 @@ public class SkillService {
             userSkills.deleteById(key);
             audit.record("M03", "USER_SKILL_REMOVED", userId, "user", "talent_skill", skillId.toString(), null);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isActiveSkill(UUID skillId) {
+        return skills.findById(skillId).map(TalentSkillEntity::isActive).orElse(false);
     }
 
     private TalentSkillEntity requireActiveSkill(UUID skillId) {

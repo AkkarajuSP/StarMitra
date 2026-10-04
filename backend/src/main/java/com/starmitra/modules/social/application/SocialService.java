@@ -1,6 +1,7 @@
 package com.starmitra.modules.social.application;
 
 import com.starmitra.modules.media.application.MediaReferenceContract;
+import com.starmitra.modules.portfolio.application.PortfolioTargetContract;
 import com.starmitra.modules.social.persistence.*;
 import com.starmitra.platform.audit.AuditService;
 import com.starmitra.platform.error.ApiException;
@@ -33,16 +34,18 @@ public class SocialService implements SocialSignalContract {
     private final CommentRepository comments;
     private final EngagementCounterRepository counters;
     private final MediaReferenceContract media;
+    private final PortfolioTargetContract portfolioTargets;
     private final AuditService audit;
 
     public SocialService(FollowRepository follows, LikeRepository likes, CommentRepository comments,
                          EngagementCounterRepository counters, MediaReferenceContract media,
-                         AuditService audit) {
+                         PortfolioTargetContract portfolioTargets, AuditService audit) {
         this.follows = follows;
         this.likes = likes;
         this.comments = comments;
         this.counters = counters;
         this.media = media;
+        this.portfolioTargets = portfolioTargets;
         this.audit = audit;
     }
 
@@ -195,7 +198,11 @@ public class SocialService implements SocialSignalContract {
                     throw new ApiException(ErrorCode.NOT_FOUND, "Target not found or not accessible");
                 }
             }
-            case "PORTFOLIO" -> { /* polymorphic ref — no owning module yet (documented) */ }
+            case "PORTFOLIO" -> {
+                if (!portfolioTargets.isEngageableItem(targetId, caller)) {
+                    throw new ApiException(ErrorCode.NOT_FOUND, "Target not found or not accessible");
+                }
+            }
             default -> throw new ApiException(ErrorCode.VALIDATION_FAILED, "Unknown target type");
         }
     }
