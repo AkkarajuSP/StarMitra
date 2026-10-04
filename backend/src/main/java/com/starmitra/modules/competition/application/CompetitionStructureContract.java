@@ -29,5 +29,5 @@ public interface CompetitionStructureContract {
     record ParticipantDetails(UUID id, UUID competitionId, UUID categoryId, String type,
                               UUID userId, UUID projectId, String status) {}
     record RoundWindow(UUID id, UUID competitionId, java.time.OffsetDateTime startAt,
-                       java.time.OffsetDateTime endAt) {}
+                       java.time.OffsetDateTime endAt, UUID voteConfigId) {}
 }

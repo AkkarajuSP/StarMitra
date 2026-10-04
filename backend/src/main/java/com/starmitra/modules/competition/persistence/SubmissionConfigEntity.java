@@ -18,6 +18,7 @@ public class SubmissionConfigEntity {
     private UUID categoryId;                       // null = competition-wide config
 
     /** Freeform config JSONB — deadlines, media rules, team config per FRS. */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
     private String config;
 

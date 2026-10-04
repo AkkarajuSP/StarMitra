@@ -18,6 +18,7 @@ public class EligibilityRuleEntity {
     private String ruleType;
 
     /** Freeform rule params (JSONB) — evaluator is pluggable per rule_type. */
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "rule_params", columnDefinition = "jsonb")
     private String ruleParams;
 

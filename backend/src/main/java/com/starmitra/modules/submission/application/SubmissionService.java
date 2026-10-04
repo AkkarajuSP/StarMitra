@@ -248,6 +248,16 @@ public class SubmissionService implements SubmissionTruthContract {
                 .map(s -> s.getCompetitionId().equals(competitionId)).orElse(false);
     }
 
+    @Override @Transactional(readOnly = true)
+    public java.util.Optional<SubmissionDetails> submissionView(UUID submissionId) {
+        return submissions.findById(submissionId).map(s -> {
+            var p = competition.participantView(s.getParticipantId())
+                    .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+            return new SubmissionDetails(s.getId(), s.getParticipantId(), p.type(),
+                    s.getCompetitionId(), s.getCategoryId(), s.getRoundId(), s.getState().name());
+        });
+    }
+
     // ---------- internals ----------
 
     private SubmissionEntity requireSubmission(UUID submissionId) {

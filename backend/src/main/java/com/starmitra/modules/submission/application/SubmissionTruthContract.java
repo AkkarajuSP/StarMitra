@@ -13,4 +13,10 @@ public interface SubmissionTruthContract {
 
     /** Submission exists and belongs to the competition. */
     boolean belongsToCompetition(UUID submissionId, UUID competitionId);
+
+    /** Full submission context — M11 derives target/scope from this, never M10 internals. */
+    java.util.Optional<SubmissionDetails> submissionView(UUID submissionId);
+
+    record SubmissionDetails(UUID id, UUID participantId, String participantType,
+                             UUID competitionId, UUID categoryId, UUID roundId, String state) {}
 }
