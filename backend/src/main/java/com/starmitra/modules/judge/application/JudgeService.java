@@ -3,6 +3,7 @@ package com.starmitra.modules.judge.application;
 import com.starmitra.modules.competition.application.CompetitionStructureContract;
 import com.starmitra.modules.identity.application.SystemRoleContract;
 import com.starmitra.modules.judge.persistence.*;
+import com.starmitra.modules.rubric.application.RubricContract;
 import com.starmitra.modules.skill.application.SkillTaxonomyContract;
 import com.starmitra.modules.submission.application.SubmissionTruthContract;
 import com.starmitra.platform.audit.AuditService;
@@ -35,13 +36,15 @@ public class JudgeService {
     private final SubmissionTruthContract submissions;
     private final SkillTaxonomyContract skills;
     private final SystemRoleContract systemRoles;
+    private final RubricContract rubrics;
     private final AuditService audit;
 
     public JudgeService(JudgeRepository judges, JudgeExpertiseRepository expertise,
                         JudgeAssignmentRepository assignments, JudgeScopeService scope,
                         CompetitionStructureContract competition,
                         SubmissionTruthContract submissions, SkillTaxonomyContract skills,
-                        SystemRoleContract systemRoles, AuditService audit) {
+                        SystemRoleContract systemRoles, RubricContract rubrics,
+                        AuditService audit) {
         this.judges = judges;
         this.expertise = expertise;
         this.assignments = assignments;
@@ -50,6 +53,7 @@ public class JudgeService {
         this.submissions = submissions;
         this.skills = skills;
         this.systemRoles = systemRoles;
+        this.rubrics = rubrics;
         this.audit = audit;
     }
 
@@ -173,11 +177,19 @@ public class JudgeService {
                 .toList();
     }
 
-    /** M13 rubric lookup seam — rubric module not implemented yet. */
+    /**
+     * M20 rubric seam — contextId is the ROUND id. Scope-checked through M12
+     * (judge must hold an assignment covering that round's competition/round),
+     * resolved through M13's published-version contract — never frontend-derived.
+     */
     @Transactional(readOnly = true)
-    public void myRubric(UUID userId, UUID contextId) {
-        scope.requireJudge(userId);
-        throw new ApiException(ErrorCode.NOT_FOUND, "No published rubric for context");
+    public RubricContract.RubricVersionView myRubric(UUID userId, UUID roundId) {
+        var w = competition.roundWindow(roundId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        scope.requireScope(userId, w.competitionId(), null, roundId);
+        return rubrics.resolveForRound(roundId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND,
+                        "No published rubric for context"));
     }
 
     // ---------- internals ----------

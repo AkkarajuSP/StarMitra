@@ -36,3 +36,7 @@ export async function login(identifier: string, otp: string): Promise<Session> {
 export function isAdmin(s: Session | null): boolean {
   return !!s && (s.roles.includes('ADMIN') || s.roles.includes('SUPER_ADMIN'));
 }
+
+export function isJudge(s: Session | null): boolean {
+  return !!s && s.roles.includes('JUDGE');
+}

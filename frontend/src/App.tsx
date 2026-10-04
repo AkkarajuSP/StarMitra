@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { setToken } from './api/client';
-import { isAdmin, type Session } from './api/auth';
+import { isAdmin, isJudge, type Session } from './api/auth';
 import AdminShell from './admin/layout/AdminShell';
 import LoginPage from './admin/layout/LoginPage';
 import DashboardPage from './admin/dashboard/DashboardPage';
@@ -16,27 +16,27 @@ import RubricsPage from './admin/rubrics/RubricsPage';
 import ScoringPage from './admin/scoring/ScoringPage';
 import ProgressionPage from './admin/progression/ProgressionPage';
 import NotificationsPage from './admin/notifications/NotificationsPage';
+import JudgeShell from './judge/layout/JudgeShell';
+import JudgeDashboard from './judge/dashboard/DashboardPage';
+import AssignmentsPage from './judge/assignments/AssignmentsPage';
+import SubmissionsPage from './judge/submissions/SubmissionsPage';
+import EvaluatePage from './judge/evaluation/EvaluatePage';
+import JudgeNotificationsPage from './judge/notifications/NotificationsPage';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const authed = session && isAdmin(session);           // backend still authoritative
-
   const doLogin = (s: Session) => { setToken(s.accessToken); setSession(s); };
   const logout = () => { setToken(null); setSession(null); };
+
+  // Role gates are navigation UX only — backend authorization is authoritative.
+  const admin = session && isAdmin(session);
+  const judge = session && isJudge(session);
 
   return (
     <BrowserRouter>
       <Routes>
-        {!authed && <Route path="*" element={
-          session && !isAdmin(session)
-            ? <div className="state error" role="alert">
-                This account does not have admin access.
-              </div>
-            : <LoginPage onLogin={doLogin} />
-        } />}
-        {authed && (
-          <Route path="/admin" element={
-            <AdminShell session={session} onLogout={logout} />}>
+        {admin && (
+          <Route path="/admin" element={<AdminShell session={session} onLogout={logout} />}>
             <Route index element={<DashboardPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="skills" element={<SkillsPage />} />
@@ -51,7 +51,24 @@ export default function App() {
             <Route path="audit" element={<AuditPage />} />
           </Route>
         )}
-        <Route path="*" element={<Navigate to="/admin" replace />} />
+        {judge && (
+          <Route path="/judge" element={<JudgeShell session={session} onLogout={logout} />}>
+            <Route index element={<JudgeDashboard />} />
+            <Route path="assignments" element={<AssignmentsPage />} />
+            <Route path="submissions" element={<SubmissionsPage />} />
+            <Route path="evaluate/:submissionId" element={<EvaluatePage />} />
+            <Route path="notifications" element={<JudgeNotificationsPage />} />
+          </Route>
+        )}
+        <Route path="/login" element={<LoginPage onLogin={doLogin} />} />
+        <Route path="*" element={
+          !session ? <Navigate to="/login" replace />
+            : admin ? <Navigate to="/admin" replace />
+            : judge ? <Navigate to="/judge" replace />
+            : <div className="state error" role="alert">
+                This account has no portal access.
+              </div>
+        } />
       </Routes>
     </BrowserRouter>
   );

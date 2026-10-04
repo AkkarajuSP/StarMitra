@@ -2,6 +2,7 @@ package com.starmitra.modules.judgeportal.api;
 
 import com.starmitra.modules.judge.application.JudgeService;
 import com.starmitra.modules.judge.application.JudgeScopeService;
+import com.starmitra.modules.rubric.application.RubricContract;
 import com.starmitra.platform.security.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,10 +46,9 @@ public class JudgePortalController {
                 judges.myScopedSubmissions(SecurityUtils.currentUserId(), competitionId));
     }
 
-    /** M13 rubric seam — 404 until rubric versions exist. */
-    @GetMapping("/rubrics/{contextId}")
-    public ResponseEntity<Void> myRubric(@PathVariable UUID contextId) {
-        judges.myRubric(SecurityUtils.currentUserId(), contextId);
-        return ResponseEntity.ok().build();
+    /** M13 rubric seam — published version for the round (scope-checked). */
+    @GetMapping("/rubrics/{roundId}")
+    public ResponseEntity<RubricContract.RubricVersionView> myRubric(@PathVariable UUID roundId) {
+        return ResponseEntity.ok(judges.myRubric(SecurityUtils.currentUserId(), roundId));
     }
 }
