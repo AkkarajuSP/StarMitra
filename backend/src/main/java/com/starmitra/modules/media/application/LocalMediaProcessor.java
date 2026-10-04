@@ -20,7 +20,7 @@ import java.util.UUID;
  * ImageIO decode also strips reliance on extension/MIME claims.
  */
 @Component
-@Profile({"local", "test", "default"})
+@Profile({"local", "test", "uat", "default"})
 public class LocalMediaProcessor implements MediaProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(LocalMediaProcessor.class);

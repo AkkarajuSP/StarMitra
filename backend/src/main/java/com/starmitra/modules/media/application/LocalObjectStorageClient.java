@@ -19,7 +19,7 @@ import java.util.UUID;
  * Production adapters (S3/GCS/R2) implement the same port.
  */
 @Component
-@Profile({"local", "test", "default"})
+@Profile({"local", "test", "uat", "default"})
 public class LocalObjectStorageClient implements ObjectStorageClient {
 
     private final Path root;

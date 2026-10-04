@@ -4,6 +4,7 @@ import { put, post } from '../api/client';
 describe('api client concurrency headers', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    document.cookie = 'XSRF-TOKEN=test-xsrf';   // skip bootstrap call in assertions
     globalThis.fetch = vi.fn(async () =>
       new Response('{}', { status: 200 })) as unknown as typeof fetch;
   });

@@ -1,13 +1,19 @@
-# UAT — managed PostgreSQL, secure cookies on
+# UAT — local product-owner testing profile. Defaults point at the
+# docker-compose PostgreSQL; all secrets remain env-overridable.
+# Activates: UatOtpSender (OTP printed to backend console) + UatSeedRunner
+# (idempotent demo data). NOT for production.
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/starmitra_uat}
+    username: ${DB_USER:starmitra}
+    password: ${DB_PASSWORD:starmitra}
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:dev-only-not-for-production-change-me-32+}
   auth:
     cookie:
-      secure: true
+      secure: false
       same-site: Lax
+logging:
+  level:
+    com.starmitra: INFO
