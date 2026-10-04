@@ -2,6 +2,7 @@ package com.starmitra.modules.rubric.application;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,4 +20,10 @@ public interface RubricContract {
 
     /** Rubric resolved for a round (M09 round.rubric_version_id → published version). */
     Optional<RubricVersionView> resolveForRound(UUID roundId);
+
+    /** SUBMITTED evaluations for a submission — M14 aggregation input. */
+    List<EvaluationDetail> submittedEvaluations(UUID submissionId);
+
+    record EvaluationDetail(UUID evaluationId, UUID judgeId, UUID rubricVersionId,
+                            Map<UUID, BigDecimal> criterionScores) {}
 }

@@ -45,4 +45,7 @@ public class JudgeEvaluationScoreEntity {
         this.score = score;
         this.comment = comment;
     }
+
+    public UUID getCriterionId() { return criterionId; }
+    public BigDecimal getScore() { return score; }
 }

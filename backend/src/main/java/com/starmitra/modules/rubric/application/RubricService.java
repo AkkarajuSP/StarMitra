@@ -265,6 +265,18 @@ public class RubricService implements RubricContract {
                 .flatMap(this::publishedVersion);
     }
 
+    @Override @Transactional(readOnly = true)
+    public List<EvaluationDetail> submittedEvaluations(UUID submissionId) {
+        return evaluations
+                .findBySubmissionIdAndStatus(submissionId, JudgeEvaluationEntity.Status.SUBMITTED)
+                .stream()
+                .map(e -> new EvaluationDetail(e.getId(), e.getJudgeId(), e.getRubricVersionId(),
+                        scores.findByEvaluationId(e.getId()).stream().collect(Collectors.toMap(
+                                JudgeEvaluationScoreEntity::getCriterionId,
+                                JudgeEvaluationScoreEntity::getScore))))
+                .toList();
+    }
+
     // ---------- internals ----------
 
     private void writeCriteria(UUID versionId, List<CriterionCmd> cmds) {
