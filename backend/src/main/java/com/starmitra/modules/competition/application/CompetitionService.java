@@ -236,6 +236,21 @@ public class CompetitionService implements CompetitionStructureContract {
                 .orElse(false);
     }
 
+    @Override @Transactional(readOnly = true)
+    public java.util.Optional<ParticipantDetails> participantView(UUID participantId) {
+        return participants.findById(participantId)
+                .map(p -> new ParticipantDetails(p.getId(), p.getCompetitionId(), p.getCategoryId(),
+                        p.getParticipantType().name(), p.getUserId(), p.getProjectId(),
+                        p.getStatus().name()));
+    }
+
+    @Override @Transactional(readOnly = true)
+    public java.util.Optional<RoundWindow> roundWindow(UUID roundId) {
+        return rounds.findById(roundId)
+                .map(r -> new RoundWindow(r.getId(), r.getCompetitionId(),
+                        r.getStartAt(), r.getEndAt()));
+    }
+
     // ---------- internals ----------
 
     private CompetitionEntity requireComp(UUID competitionId) {

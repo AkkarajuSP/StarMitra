@@ -19,4 +19,15 @@ public interface CompetitionStructureContract {
 
     /** Competition exists and participation is OPEN (submission-eligible). */
     boolean isOpenForParticipation(UUID competitionId);
+
+    /** Participant's full context for downstream modules (M10 derives comp/category). */
+    java.util.Optional<ParticipantDetails> participantView(UUID participantId);
+
+    /** Round's time window — for M10 deadline enforcement. */
+    java.util.Optional<RoundWindow> roundWindow(UUID roundId);
+
+    record ParticipantDetails(UUID id, UUID competitionId, UUID categoryId, String type,
+                              UUID userId, UUID projectId, String status) {}
+    record RoundWindow(UUID id, UUID competitionId, java.time.OffsetDateTime startAt,
+                       java.time.OffsetDateTime endAt) {}
 }

@@ -27,7 +27,8 @@ import java.util.UUID;
  * M08 may link via ProjectCreditContract.
  */
 @Service
-public class RoomService implements ProjectCreditContract, ProjectMembershipContract {
+public class RoomService implements ProjectCreditContract, ProjectMembershipContract,
+        ProjectContributionContract {
 
     private final CreativeRoomRepository rooms;
     private final ProjectMemberRepository members;
@@ -304,6 +305,23 @@ public class RoomService implements ProjectCreditContract, ProjectMembershipCont
     public boolean isActiveMember(UUID roomId, UUID userId) {
         return members.findById(new ProjectMemberEntity.Pk(roomId, userId))
                 .map(m -> m.getStatus() == ProjectMemberEntity.Status.ACTIVE).orElse(false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<ResolvedContribution> resolve(UUID roomId, UUID memberUserId, UUID roleRef) {
+        if (!isActiveMember(roomId, memberUserId)) {
+            return java.util.Optional.empty();
+        }
+        if (roleRef == null) {
+            return java.util.Optional.of(
+                    new ResolvedContribution(memberUserId, memberUserId.toString(), null, null));
+        }
+        return roles.findById(roleRef)
+                .filter(r -> r.getRoomId().equals(roomId)
+                        && r.getMemberUserId().equals(memberUserId) && r.isActive())
+                .map(r -> new ResolvedContribution(memberUserId, memberUserId.toString(),
+                        r.getId(), r.getRoleName()));
     }
 
     // ---------- internals ----------
