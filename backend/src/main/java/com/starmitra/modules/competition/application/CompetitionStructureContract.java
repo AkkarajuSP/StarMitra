@@ -30,4 +30,10 @@ public interface CompetitionStructureContract {
                               UUID userId, UUID projectId, String status) {}
     record RoundWindow(UUID id, UUID competitionId, java.time.OffsetDateTime startAt,
                        java.time.OffsetDateTime endAt, UUID voteConfigId, UUID rubricVersionId) {}
+
+    /** Competition's M09-owned round_state (M15 transitions via this, never directly). */
+    java.util.Optional<String> roundStateOf(UUID competitionId);
+
+    /** M15-controlled lifecycle transition — NOT_STARTED→ACTIVE→COMPLETE only. */
+    void transitionRoundState(UUID competitionId, String toState);
 }

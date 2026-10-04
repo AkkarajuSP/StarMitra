@@ -251,6 +251,31 @@ public class CompetitionService implements CompetitionStructureContract {
                         r.getStartAt(), r.getEndAt(), r.getVoteConfigId(), r.getRubricVersionId()));
     }
 
+    @Override @Transactional(readOnly = true)
+    public java.util.Optional<String> roundStateOf(UUID competitionId) {
+        return competitions.findById(competitionId)
+                .map(c -> c.getRoundState().name());
+    }
+
+    @Override @Transactional
+    public void transitionRoundState(UUID competitionId, String toState) {
+        var c = competitions.findById(competitionId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        var from = c.getRoundState();
+        var to = CompetitionEntity.RoundState.valueOf(toState);
+        boolean legal = switch (to) {
+            case ACTIVE -> from == CompetitionEntity.RoundState.NOT_STARTED;
+            case COMPLETE -> from == CompetitionEntity.RoundState.ACTIVE;
+            default -> false;
+        };
+        if (!legal) {
+            throw new ApiException(ErrorCode.STATE_TRANSITION_INVALID,
+                    "round_state " + from + " -> " + to);
+        }
+        c.setRoundState(to);
+        competitions.saveAndFlush(c);
+    }
+
     // ---------- internals ----------
 
     private CompetitionEntity requireComp(UUID competitionId) {

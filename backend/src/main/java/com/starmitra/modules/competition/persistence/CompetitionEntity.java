@@ -75,6 +75,7 @@ public class CompetitionEntity {
     public ConfigStatus getConfigStatus() { return configStatus; }
     public ParticipationStatus getParticipationStatus() { return participationStatus; }
     public RoundState getRoundState() { return roundState; }
+    public void setRoundState(RoundState s) { this.roundState = s; this.updatedAt = OffsetDateTime.now(); }
     public UUID getCreatedBy() { return createdBy; }
     public int getVersion() { return version; }
 }
