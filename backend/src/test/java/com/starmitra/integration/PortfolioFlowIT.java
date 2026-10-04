@@ -143,17 +143,13 @@ class PortfolioFlowIT {
     }
 
     @Test
-    void creditLinkStoredNotManufactured() {
+    void creditLinkRequiresVerifiedM07Credit() {
         var item = portfolioService.createItem(me,
                 new PortfolioService.ItemCommand("film", null, null, "PUBLIC"));
-        var creditId = UUID.randomUUID();                       // M07 ref — link stored as reference
-        portfolioService.linkCredit(me, item.id(), creditId);
-        em.flush();
-        assertEquals(1, jdbc.queryForObject(
-                "select count(*) from portfolio_item_contributions where item_id=?",
-                Integer.class, item.id()));
-        // duplicate link → CONFLICT (uq_pic_item_credit)
-        assertThrows(ApiException.class, () -> portfolioService.linkCredit(me, item.id(), creditId));
+        // unverifiable credit ref → rejected (M08 never manufactures)
+        assertThrows(ApiException.class,
+                () -> portfolioService.linkCredit(me, item.id(), UUID.randomUUID()));
+        // verified M07 credit flow is covered end-to-end in RoomFlowIT
     }
 
     @Test

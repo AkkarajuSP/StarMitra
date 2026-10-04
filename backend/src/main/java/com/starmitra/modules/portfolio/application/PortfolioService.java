@@ -2,6 +2,7 @@ package com.starmitra.modules.portfolio.application;
 
 import com.starmitra.modules.media.application.MediaReferenceContract;
 import com.starmitra.modules.portfolio.persistence.*;
+import com.starmitra.modules.room.application.ProjectCreditContract;
 import com.starmitra.modules.skill.application.SkillTaxonomyContract;
 import com.starmitra.platform.audit.AuditService;
 import com.starmitra.platform.error.ApiException;
@@ -32,19 +33,21 @@ public class PortfolioService implements PortfolioTargetContract {
     private final PortfolioItemContributionRepository contributions;
     private final SkillTaxonomyContract skills;
     private final MediaReferenceContract media;
+    private final ProjectCreditContract creditTruth;
     private final AuditService audit;
 
     public PortfolioService(PortfolioRepository portfolios, PortfolioItemRepository items,
                             PortfolioItemMediaRepository itemMedia,
                             PortfolioItemContributionRepository contributions,
                             SkillTaxonomyContract skills, MediaReferenceContract media,
-                            AuditService audit) {
+                            ProjectCreditContract creditTruth, AuditService audit) {
         this.portfolios = portfolios;
         this.items = items;
         this.itemMedia = itemMedia;
         this.contributions = contributions;
         this.skills = skills;
         this.media = media;
+        this.creditTruth = creditTruth;
         this.audit = audit;
     }
 
@@ -145,13 +148,16 @@ public class PortfolioService implements PortfolioTargetContract {
     // ---------- credit links ----------
 
     /**
-     * linkProjectCredit — stores the M07 credit reference. M07 does not exist
-     * yet, so verification is impossible; the seam is the contract — M08
-     * never fabricates contribution data.
+     * linkProjectCredit — only VERIFIED M07 credits owned by the caller
+     * (ProjectCreditContract.isLinkableCredit). M08 never manufactures
+     * contribution — an unverifiable credit is rejected.
      */
     @Transactional
     public void linkCredit(UUID userId, UUID itemId, UUID projectCreditId) {
         ownItem(userId, itemId);
+        if (!creditTruth.isLinkableCredit(projectCreditId, userId)) {
+            throw new ApiException(ErrorCode.NOT_FOUND, "Credit not found or not verified");
+        }
         try {
             contributions.saveAndFlush(new PortfolioItemContributionEntity(itemId, projectCreditId));
         } catch (DataIntegrityViolationException dup) {
