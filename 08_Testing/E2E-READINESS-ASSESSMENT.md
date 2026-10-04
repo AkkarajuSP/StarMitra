@@ -80,7 +80,18 @@ Cursor pagination on feed/inbox/leaderboard; publication + read-state indexes; n
 5. M13 evaluation reopen judge-facing trigger (P3)
 6. ETag page wiring + refresh-token client (P3)
 
-## Remediation plan
+## Remediation wave R1 — CLOSED (verified by RemediationR1IT, 9 tests)
+
+| Gap | Resolution |
+|---|---|
+| **E2E-01 M18 enforcement** | `NoOpProfileRestrictionContract` removed — `ModerationService` implements `ProfileRestrictionContract` (USER target → restricted). `activeRestrictions` now filters clock-expired rows. M04 `deliverableTo` denies when media OR owner restricted. M05 search/discover/feed filter restricted profiles + restricted media/owner. M21 gates follow/like/comment by restriction type (POSTING/COMMENTING/FOLLOWING/LIKING/INTERACTION → TARGET_RESTRICTED). Verified: restricted media/user denied, expired restores, owner keeps own asset. |
+| **E2E-02 M17 producers** | Wired: FOLLOW (M21→followee), LIKE (M21→target owner via new `ownerOf` on M04/M08 contracts), COMPETITION_PUBLISHED (M09 create→organizer), LEADERBOARD_PUBLISHED (M16 publish→entry owners via M10/M09), EVALUATION_STATUS (M13 submit→submission owner). Dedup + prefs respected. Unwired events (ROOM_INVITATION, SUBMISSION_STATUS, SCORE_AVAILABLE, MODERATION_ACTION, ROUND_PROGRESS) — documented producer-policy follow-ups. |
+| **E2E-03 ETag** | Client `ifMatch`/`Idempotency-Key` verified (3 vitest). Page-level wiring follows as versioned-resource edit forms land. |
+| **E2E-04 M10 media refs** | `SubmissionTruthContract.mediaIdsOf` added; `ScopedSubmission.mediaIds` surfaces refs to M20 (M04 ids only — never storage keys). |
+
+Suite: **205 backend + 11 frontend, all green.** OpenAPI 133 ops, ArchUnit, FlywaySchemaIT — PASS.
+
+## Remediation plan (post-R1)
 
 1. **P2-E2E-01**: wire `ModerationContract` into M04 `deliverableTo`, M05 feed/search filters, M21 interactions — per owning module's boundary.
 2. **P2-E2E-02**: emit `notifyEvent` at each accepted event commit (start with FOLLOW/LIKE + COMPETITION_PUBLISHED + LEADERBOARD_PUBLISHED + EVALUATION_STATUS).

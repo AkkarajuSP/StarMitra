@@ -263,6 +263,11 @@ public class SubmissionService implements SubmissionTruthContract {
         return submissions.findFinalizedIds(competitionId, categoryId, roundId);
     }
 
+    @Override @Transactional(readOnly = true)
+    public java.util.List<UUID> mediaIdsOf(UUID submissionId) {
+        return media.findMediaIds(submissionId);
+    }
+
     // ---------- internals ----------
 
     private SubmissionEntity requireSubmission(UUID submissionId) {

@@ -14,13 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * M09 — Competitions. Authoritative competition truth: competition, categories
+ * M09 â€” Competitions. Authoritative competition truth: competition, categories
  * (multi-skill via M03-validated tags), rounds, eligibility rules, submission
  * config, participants (DB-03 XOR USER/PROJECT). Voting/judging/scoring/
- * progression/submission/leaderboard stay in M10–M16 via
+ * progression/submission/leaderboard stay in M10â€“M16 via
  * CompetitionStructureContract. Eligibility rule storage is canonical;
  * per-rule-type evaluation is pluggable (open decision).
  */
@@ -34,6 +35,7 @@ public class CompetitionService implements CompetitionStructureContract {
     private final EligibilityRuleRepository rules;
     private final SubmissionConfigRepository submissionConfigs;
     private final CompetitionParticipantRepository participants;
+    private final com.starmitra.modules.notification.application.NotificationContract notifications;
     private final SkillTaxonomyContract skills;
     private final ProjectMembershipContract projectMembers;
     private final AuditService audit;
@@ -45,7 +47,8 @@ public class CompetitionService implements CompetitionStructureContract {
                               SubmissionConfigRepository submissionConfigs,
                               CompetitionParticipantRepository participants,
                               SkillTaxonomyContract skills,
-                              ProjectMembershipContract projectMembers, AuditService audit) {
+                              ProjectMembershipContract projectMembers, AuditService audit,
+                              com.starmitra.modules.notification.application.NotificationContract notifications) {
         this.competitions = competitions;
         this.categories = categories;
         this.categorySkills = categorySkills;
@@ -56,6 +59,7 @@ public class CompetitionService implements CompetitionStructureContract {
         this.skills = skills;
         this.projectMembers = projectMembers;
         this.audit = audit;
+        this.notifications = notifications;
     }
 
     public record CompetitionView(UUID id, String title, String configStatus,
@@ -90,6 +94,12 @@ public class CompetitionService implements CompetitionStructureContract {
     public CompetitionView create(UUID caller, CompetitionCommand cmd) {
         var c = competitions.save(new CompetitionEntity(cmd.title(), cmd.description(), caller));
         audit.record("M09", "COMPETITION_CREATED", caller, "user", "competition", c.getId().toString(), null);
+        // participation is OPEN by default â†’ creation IS the publication event.
+        // Recipient policy: organizer only (skill-matched fan-out is a documented
+        // producer-policy follow-up, not silently broadcast).
+        notifications.notifyEvent("M09", "COMPETITION_PUBLISHED", c.getId().toString(), "1",
+                "COMPETITION_PUBLISHED", List.of(caller), Map.of("title", cmd.title()),
+                "/competitions/" + c.getId());
         return toComp(c);
     }
 
@@ -159,11 +169,11 @@ public class CompetitionService implements CompetitionStructureContract {
         competitions.save(c);
     }
 
-    // ---------- participants (USER xor PROJECT; eligibility ≠ permission) ----------
+    // ---------- participants (USER xor PROJECT; eligibility â‰  permission) ----------
 
     /**
      * Register: participation OPEN + competition exists + optional category
-     * belongs to comp. USER → caller self. PROJECT → caller must be an
+     * belongs to comp. USER â†’ caller self. PROJECT â†’ caller must be an
      * ACTIVE member of that M07 room. UQ dedups.
      */
     @Transactional
@@ -208,7 +218,7 @@ public class CompetitionService implements CompetitionStructureContract {
                 new Page(hasMore ? Cursor.encode("o", String.valueOf(offset + size)) : null, hasMore, null));
     }
 
-    // ---------- CompetitionStructureContract (M10–M16) ----------
+    // ---------- CompetitionStructureContract (M10â€“M16) ----------
 
     @Override @Transactional(readOnly = true)
     public boolean roundBelongsTo(UUID competitionId, UUID roundId) {

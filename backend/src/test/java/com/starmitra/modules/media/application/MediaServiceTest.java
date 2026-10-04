@@ -32,6 +32,7 @@ class MediaServiceTest {
         storage = mock(ObjectStorageClient.class);
         processor = mock(MediaProcessor.class);
         service = new MediaService(assets, variants, storage, processor, mock(AuditService.class),
+                (t, id) -> java.util.List.of(),   // no active M18 restrictions
                 50_000_000L, Duration.ofMinutes(15), Duration.ofHours(1));
     }
 

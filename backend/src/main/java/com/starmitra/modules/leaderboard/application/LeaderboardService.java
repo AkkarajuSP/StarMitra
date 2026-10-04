@@ -33,6 +33,8 @@ public class LeaderboardService {
     private final ScoringTruthContract scoring;
     private final ProgressionTruthContract progression;
     private final CompetitionStructureContract competition;
+    private final com.starmitra.modules.submission.application.SubmissionTruthContract submissions;
+    private final com.starmitra.modules.notification.application.NotificationContract notifications;
     private final AuditService audit;
     private final ObjectMapper json;
 
@@ -42,6 +44,8 @@ public class LeaderboardService {
                               ScoringTruthContract scoring,
                               ProgressionTruthContract progression,
                               CompetitionStructureContract competition,
+                              com.starmitra.modules.submission.application.SubmissionTruthContract submissions,
+                              com.starmitra.modules.notification.application.NotificationContract notifications,
                               AuditService audit, ObjectMapper json) {
         this.projections = projections;
         this.publications = publications;
@@ -49,6 +53,8 @@ public class LeaderboardService {
         this.scoring = scoring;
         this.progression = progression;
         this.competition = competition;
+        this.submissions = submissions;
+        this.notifications = notifications;
         this.audit = audit;
         this.json = json;
     }
@@ -80,6 +86,20 @@ public class LeaderboardService {
         publications.save(pub);
         if (status == LeaderboardPublicationEntity.Status.PUBLISHED && roundId != null) {
             refreshProjection(competitionId, roundId);        // rebuildable, non-authoritative
+            // recipients = USER owners of leaderboard entries (M10→M09 truth, never client)
+            var recipients = scoring.latestResults(roundId).stream()
+                    .map(r -> submissions.submissionView(r.submissionId()))
+                    .flatMap(java.util.Optional::stream)
+                    .map(d -> competition.participantView(d.participantId()))
+                    .flatMap(java.util.Optional::stream)
+                    .map(CompetitionStructureContract.ParticipantDetails::userId)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct().toList();
+            if (!recipients.isEmpty()) {
+                notifications.notifyEvent("M16", "LEADERBOARD_PUBLISHED",
+                        pub.getId().toString(), "1", "LEADERBOARD_PUBLISHED", recipients,
+                        Map.of("competitionId", competitionId.toString()), null);
+            }
         }
         audit.record("M16", "LEADERBOARD_" + action, admin, "user",
                 "leaderboard_publication", pub.getId().toString(), null);

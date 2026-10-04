@@ -33,6 +33,7 @@ class ProfileServiceTest {
                 restriction, new com.starmitra.modules.media.application.MediaReferenceContract() {
                     public boolean isUsableBy(UUID m, UUID o) { return true; }
                     public boolean isDeliverableTo(UUID m, UUID c) { return true; }
+                    public java.util.Optional<UUID> ownerOf(UUID m) { return java.util.Optional.empty(); }
                 }, mock(AuditService.class));
     }
 

@@ -42,6 +42,7 @@ public class RubricService implements RubricContract {
     private final JudgeScopeService judgeScope;
     private final SubmissionTruthContract submissions;
     private final CompetitionStructureContract competition;
+    private final com.starmitra.modules.notification.application.NotificationContract notifications;
     private final AuditService audit;
     private final ObjectMapper json;
 
@@ -53,6 +54,7 @@ public class RubricService implements RubricContract {
                          JudgeScopeService judgeScope,
                          SubmissionTruthContract submissions,
                          CompetitionStructureContract competition,
+                         com.starmitra.modules.notification.application.NotificationContract notifications,
                          AuditService audit, ObjectMapper json) {
         this.templates = templates;
         this.versions = versions;
@@ -62,6 +64,7 @@ public class RubricService implements RubricContract {
         this.judgeScope = judgeScope;
         this.submissions = submissions;
         this.competition = competition;
+        this.notifications = notifications;
         this.audit = audit;
         this.json = json;
     }
@@ -224,6 +227,13 @@ public class RubricService implements RubricContract {
         evaluations.saveAndFlush(ev);
         audit.record("M13", "EVALUATION_SUBMITTED", userId, "user",
                 "judge_evaluation", ev.getId().toString(), null);
+        // EVALUATION_STATUS → submission owner (M10→M09 truth; PROJECT participants
+        // have no userId — member fan-out is a documented producer-policy follow-up)
+        competition.participantView(s.participantId())
+                .map(CompetitionStructureContract.ParticipantDetails::userId)
+                .ifPresent(owner -> notifications.notifyEvent("M13", "EVALUATION_STATUS",
+                        ev.getId().toString(), "1", "EVALUATION_STATUS",
+                        List.of(owner), Map.of("submissionId", submissionId.toString()), null));
         return toView(ev);
     }
 

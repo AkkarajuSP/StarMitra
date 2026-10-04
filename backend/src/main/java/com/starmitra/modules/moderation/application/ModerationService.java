@@ -27,7 +27,7 @@ import java.util.UUID;
  * - Restrictions: admin-enforced governance state (≠ M21 user_block)
  */
 @Service
-public class ModerationService implements ModerationContract {
+public class ModerationService implements ModerationContract, ProfileRestrictionContract {
 
     private final ModerationReportRepository reports;
     private final ModerationCaseRepository cases;
@@ -168,9 +168,18 @@ public class ModerationService implements ModerationContract {
 
     @Override @Transactional(readOnly = true)
     public List<String> activeRestrictions(String targetType, UUID targetId) {
+        var now = OffsetDateTime.now();
         return restrictions.findByTargetTypeAndTargetIdAndStatus(targetType, targetId,
                         ModerationRestrictionEntity.Status.ACTIVE).stream()
+                // expired-by-clock restrictions no longer enforce
+                .filter(r -> r.getExpiresAt() == null || r.getExpiresAt().isAfter(now))
                 .map(ModerationRestrictionEntity::getRestrictionType).toList();
+    }
+
+    /** M02/M05 seam — a user with ANY active (non-expired) restriction is restricted. */
+    @Override @Transactional(readOnly = true)
+    public boolean isRestricted(UUID userId) {
+        return isRestricted("USER", userId);
     }
 
     // ---------- internals ----------

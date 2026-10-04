@@ -13,17 +13,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * M21 — Social Engagement. Owns follows, likes, comments, engagement_counters.
+ * M21 â€” Social Engagement. Owns follows, likes, comments, engagement_counters.
  *
- * Signals are DERIVED — never authoritative for business outcomes
+ * Signals are DERIVED â€” never authoritative for business outcomes
  * (engagement_counters is a rebuildable projection per V1.17).
  * Targets are polymorphic typed refs (no FK by design):
- *   MEDIA     → validated via M04 MediaReferenceContract.isDeliverableTo
- *   PORTFOLIO → accepted unchecked (M08 not implemented — documented seam)
+ *   MEDIA     â†’ validated via M04 MediaReferenceContract.isDeliverableTo
+ *   PORTFOLIO â†’ accepted unchecked (M08 not implemented â€” documented seam)
  * Comments: create+delete only (DB-05), soft-deleted, author-only (DB-06).
  */
 @Service
@@ -35,17 +36,24 @@ public class SocialService implements SocialSignalContract {
     private final EngagementCounterRepository counters;
     private final MediaReferenceContract media;
     private final PortfolioTargetContract portfolioTargets;
+    private final com.starmitra.modules.moderation.application.ModerationContract moderation;
+    private final com.starmitra.modules.notification.application.NotificationContract notifications;
     private final AuditService audit;
 
     public SocialService(FollowRepository follows, LikeRepository likes, CommentRepository comments,
                          EngagementCounterRepository counters, MediaReferenceContract media,
-                         PortfolioTargetContract portfolioTargets, AuditService audit) {
+                         PortfolioTargetContract portfolioTargets,
+                         com.starmitra.modules.moderation.application.ModerationContract moderation,
+                         com.starmitra.modules.notification.application.NotificationContract notifications,
+                         AuditService audit) {
         this.follows = follows;
         this.likes = likes;
         this.comments = comments;
         this.counters = counters;
         this.media = media;
         this.portfolioTargets = portfolioTargets;
+        this.moderation = moderation;
+        this.notifications = notifications;
         this.audit = audit;
     }
 
@@ -58,18 +66,36 @@ public class SocialService implements SocialSignalContract {
 
     // ---------- follows ----------
 
-    /** Idempotent follow — composite PK is the duplicate guard; self-follow → 422. */
+    /**
+     * M18 enforcement â€” actor restrictions gate social actions by type.
+     * Restriction semantics are M18's; M21 enforces, never decides.
+     */
+    private void requireNotRestricted(UUID actor, String actionType) {
+        var active = moderation.activeRestrictions("USER", actor);
+        if (active.contains("INTERACTION") || active.contains("POSTING")
+                || active.contains(actionType)) {
+            throw new ApiException(ErrorCode.TARGET_RESTRICTED,
+                    "Moderation restriction in effect");
+        }
+    }
+
+    /** Idempotent follow â€” composite PK is the duplicate guard; self-follow â†’ 422. */
     @Transactional
     public void follow(UUID follower, UUID followee) {
         if (follower.equals(followee)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Cannot follow yourself");
         }
+        requireNotRestricted(follower, "FOLLOWING");
         if (!follows.existsById(new FollowEntity.Pk(follower, followee))) {
             try {
                 follows.saveAndFlush(new FollowEntity(follower, followee));
                 audit.record("M21", "USER_FOLLOWED", follower, "user", "user", followee.toString(), null);
+                notifications.notifyEvent("M21", "FOLLOW",
+                        follower + "->" + followee, "1", "FOLLOW",
+                        List.of(followee), Map.of("actorId", follower.toString()),
+                        "/u/" + follower);
             } catch (DataIntegrityViolationException dup) {
-                // concurrent insert — already following, still 204
+                // concurrent insert â€” already following, still 204
             }
         }
     }
@@ -98,9 +124,10 @@ public class SocialService implements SocialSignalContract {
 
     // ---------- likes ----------
 
-    /** Idempotent like — uq_likes_unique guards; returns like id (new or existing). */
+    /** Idempotent like â€” uq_likes_unique guards; returns like id (new or existing). */
     @Transactional
     public UUID like(UUID user, String targetType, UUID targetId) {
+        requireNotRestricted(user, "LIKING");
         requireDeliverableTarget(user, targetType, targetId);
         var existing = likes.findByUserIdAndTargetTypeAndTargetId(user, targetType, targetId);
         if (existing.isPresent()) return existing.get().getId();
@@ -108,6 +135,10 @@ public class SocialService implements SocialSignalContract {
             var like = likes.saveAndFlush(new LikeEntity(user, targetType, targetId));
             bumpCounter(targetType, targetId, 1, 0, 0);
             audit.record("M21", "TARGET_LIKED", user, "user", targetType.toLowerCase(), targetId.toString(), null);
+            targetOwner(targetType, targetId).ifPresent(owner ->
+                    notifications.notifyEvent("M21", "LIKE",
+                            targetType + ":" + targetId + ":" + user, "1", "LIKE",
+                            List.of(owner), Map.of("actorId", user.toString()), null));
             return like.getId();
         } catch (DataIntegrityViolationException dup) {
             return likes.findByUserIdAndTargetTypeAndTargetId(user, targetType, targetId)
@@ -115,7 +146,7 @@ public class SocialService implements SocialSignalContract {
         }
     }
 
-    /** Unlike by like id — owner only; foreign id → NOT_FOUND (IDOR-safe). */
+    /** Unlike by like id â€” owner only; foreign id â†’ NOT_FOUND (IDOR-safe). */
     @Transactional
     public void unlike(UUID user, UUID likeId) {
         var like = likes.findById(likeId)
@@ -129,6 +160,7 @@ public class SocialService implements SocialSignalContract {
 
     @Transactional
     public CommentView comment(UUID author, String targetType, UUID targetId, String body) {
+        requireNotRestricted(author, "COMMENTING");
         if (body == null || body.isBlank() || body.length() > 4000) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Comment body invalid");
         }
@@ -152,7 +184,7 @@ public class SocialService implements SocialSignalContract {
                 new Page(hasMore ? Cursor.encode("o", String.valueOf(offset + size)) : null, hasMore, null));
     }
 
-    /** Soft delete (DB-05) — author only (DB-06); foreign comment → NOT_FOUND. */
+    /** Soft delete (DB-05) â€” author only (DB-06); foreign comment â†’ NOT_FOUND. */
     @Transactional
     public void deleteComment(UUID caller, UUID commentId) {
         var c = comments.findById(commentId)
@@ -190,7 +222,7 @@ public class SocialService implements SocialSignalContract {
 
     // ---------- internals ----------
 
-    /** MEDIA must be deliverable to the caller (M04 rule); PORTFOLIO unchecked — M08 not implemented. */
+    /** MEDIA must be deliverable to the caller (M04 rule); PORTFOLIO unchecked â€” M08 not implemented. */
     private void requireDeliverableTarget(UUID caller, String targetType, UUID targetId) {
         switch (targetType) {
             case "MEDIA" -> {
@@ -205,6 +237,15 @@ public class SocialService implements SocialSignalContract {
             }
             default -> throw new ApiException(ErrorCode.VALIDATION_FAILED, "Unknown target type");
         }
+    }
+
+    /** Target owner for notification recipients â€” contract-derived, never client input. */
+    private java.util.Optional<UUID> targetOwner(String targetType, UUID targetId) {
+        return switch (targetType) {
+            case "MEDIA" -> media.ownerOf(targetId);
+            case "PORTFOLIO" -> portfolioTargets.ownerOf(targetId);
+            default -> java.util.Optional.empty();
+        };
     }
 
     private void bumpCounter(String targetType, UUID targetId, long likes, long comments, long follows) {

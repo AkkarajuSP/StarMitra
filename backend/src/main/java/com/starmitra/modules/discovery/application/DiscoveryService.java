@@ -40,12 +40,15 @@ public class DiscoveryService {
 
     private final JdbcTemplate jdbc;
     private final ProfileRestrictionContract restriction;
+    private final com.starmitra.modules.moderation.application.ModerationContract moderation;
     private final SocialSignalContract social;
 
     public DiscoveryService(JdbcTemplate jdbc, ProfileRestrictionContract restriction,
+                            com.starmitra.modules.moderation.application.ModerationContract moderation,
                             SocialSignalContract social) {
         this.jdbc = jdbc;
         this.restriction = restriction;
+        this.moderation = moderation;
         this.social = social;
     }
 
@@ -84,7 +87,7 @@ public class DiscoveryService {
             order by rank desc, p.created_at desc, p.user_id asc
             limit ? offset ?""";
         var rows = jdbc.query(sql, (rs, i) -> toItem("PROFILE", rs), q, q, "%" + q + "%", size + 1, offset);
-        return slice(rows, size, offset);
+        return slice(rows.stream().filter(i -> !restriction.isRestricted(i.id())).toList(), size, offset);
     }
 
     private PageResult searchSkills(String q, int size, int offset) {
@@ -107,7 +110,8 @@ public class DiscoveryService {
               and m.original_filename ilike ?
             order by m.created_at desc, m.id asc limit ? offset ?""";
         var rows = jdbc.query(sql, (rs, i) -> toItem("MEDIA", rs), "%" + q + "%", size + 1, offset);
-        return slice(rows, size, offset);
+        // M18 truth: restricted media or restricted owner never surfaces
+        return slice(rows.stream().filter(i -> !mediaRestricted(i)).toList(), size, offset);
     }
 
     // ---------- DISCOVERY (browse — no query) ----------
@@ -169,6 +173,7 @@ public class DiscoveryService {
                         (rs, i) -> toItem("MEDIA", rs), afterTs, afterId, size + 1);
         // followed-creator boost — deterministic, applied to the fetched window
         rows = rows.stream()
+                .filter(i -> !mediaRestricted(i))
                 .sorted(java.util.Comparator
                         .<Item, Boolean>comparing(i -> followees.contains(
                                 (UUID) i.fields().get("ownerUserId"))).reversed()
@@ -187,6 +192,13 @@ public class DiscoveryService {
     }
 
     // ---------- helpers ----------
+
+    /** M18 enforcement for media items — media OR its owner restricted → excluded. */
+    private boolean mediaRestricted(Item i) {
+        if (moderation.isRestricted("MEDIA", i.id())) return true;
+        var owner = (UUID) i.fields().get("ownerUserId");
+        return owner != null && moderation.isRestricted("USER", owner);
+    }
 
     private Item toItem(String type, ResultSet rs) throws SQLException {
         return switch (type) {

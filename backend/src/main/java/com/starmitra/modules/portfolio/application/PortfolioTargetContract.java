@@ -11,4 +11,7 @@ public interface PortfolioTargetContract {
 
     /** Caller may engage: item exists, ACTIVE, and PUBLIC — or the caller owns it. */
     boolean isEngageableItem(UUID itemId, UUID callerUserId);
+
+    /** Item's portfolio owner — for recipient derivation (e.g., M21 LIKE notification). */
+    java.util.Optional<UUID> ownerOf(UUID itemId);
 }

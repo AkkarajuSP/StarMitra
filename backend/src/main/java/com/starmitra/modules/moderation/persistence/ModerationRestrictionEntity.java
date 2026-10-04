@@ -51,4 +51,5 @@ public class ModerationRestrictionEntity {
     public UUID getId() { return id; }
     public Status getStatus() { return status; }
     public String getRestrictionType() { return restrictionType; }
+    public OffsetDateTime getExpiresAt() { return expiresAt; }
 }

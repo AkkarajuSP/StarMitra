@@ -30,7 +30,22 @@ class SocialServiceTest {
         comments = mock(CommentRepository.class);
         counters = mock(EngagementCounterRepository.class);
         service = new SocialService(follows, likes, comments, counters,
-                mediaRef(true), (itemId, caller) -> true, mock(AuditService.class));
+                mediaRef(true), mockPortfolio(), mockMod(), mockNotify(), mock(AuditService.class));
+    }
+
+    private com.starmitra.modules.portfolio.application.PortfolioTargetContract mockPortfolio() {
+        var c = mock(com.starmitra.modules.portfolio.application.PortfolioTargetContract.class);
+        when(c.isEngageableItem(any(), any())).thenReturn(true);
+        when(c.ownerOf(any())).thenReturn(Optional.empty());
+        return c;
+    }
+
+    private com.starmitra.modules.moderation.application.ModerationContract mockMod() {
+        return (t, id) -> java.util.List.of();
+    }
+
+    private com.starmitra.modules.notification.application.NotificationContract mockNotify() {
+        return (m, e, s, v, n, r, b, d) -> r.size();
     }
 
     @Test
@@ -52,13 +67,14 @@ class SocialServiceTest {
         return new MediaReferenceContract() {
             public boolean isUsableBy(UUID m, UUID o) { return true; }
             public boolean isDeliverableTo(UUID m, UUID c) { return deliverable; }
+            public Optional<UUID> ownerOf(UUID m) { return Optional.empty(); }
         };
     }
 
     @Test
     void likeOnNonDeliverableMediaRejected() {
         var svc = new SocialService(follows, likes, comments, counters,
-                mediaRef(false), (itemId, caller) -> true, mock(AuditService.class));
+                mediaRef(false), mockPortfolio(), mockMod(), mockNotify(), mock(AuditService.class));
         var e = assertThrows(ApiException.class,
                 () -> svc.like(me, "MEDIA", UUID.randomUUID()));
         assertEquals(ErrorCode.NOT_FOUND, e.code());

@@ -40,9 +40,11 @@ public class MediaService implements MediaReferenceContract {
     private final long maxBytes;
     private final Duration uploadTtl;
     private final Duration deliveryTtl;
+    private final com.starmitra.modules.moderation.application.ModerationContract moderation;
 
     public MediaService(MediaAssetRepository assets, MediaVariantRepository variants,
                         ObjectStorageClient storage, MediaProcessor processor, AuditService audit,
+                        com.starmitra.modules.moderation.application.ModerationContract moderation,
                         @Value("${app.media.max-bytes:52428800}") long maxBytes,
                         @Value("${app.media.upload-ttl:PT15M}") Duration uploadTtl,
                         @Value("${app.media.delivery-ttl:PT1H}") Duration deliveryTtl) {
@@ -51,6 +53,7 @@ public class MediaService implements MediaReferenceContract {
         this.storage = storage;
         this.processor = processor;
         this.audit = audit;
+        this.moderation = moderation;
         this.maxBytes = maxBytes;
         this.uploadTtl = uploadTtl;
         this.deliveryTtl = deliveryTtl;
@@ -151,6 +154,12 @@ public class MediaService implements MediaReferenceContract {
 
     @Override
     @Transactional(readOnly = true)
+    public java.util.Optional<UUID> ownerOf(UUID mediaId) {
+        return assets.findById(mediaId).map(MediaAssetEntity::getOwnerUserId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean isDeliverableTo(UUID mediaId, UUID callerUserId) {
         return assets.findById(mediaId)
                 .map(a -> a.getOwnerUserId().equals(callerUserId) || deliverableTo(a))
@@ -181,11 +190,17 @@ public class MediaService implements MediaReferenceContract {
         return asset;
     }
 
-    /** Deliverable to non-owner: PUBLIC + processed + not REJECTED/RESTRICTED. */
+    /**
+     * Deliverable to non-owner: PUBLIC + processed + not REJECTED/RESTRICTED,
+     * AND no active M18 restriction on the media itself or its owner.
+     * M18 stays authoritative — M04 enforces, never decides.
+     */
     private boolean deliverableTo(MediaAssetEntity a) {
         if (a.getVisibility() != MediaAssetEntity.Visibility.PUBLIC) return false;
         if (a.getModerationState() == MediaAssetEntity.ModerationState.REJECTED
                 || a.getModerationState() == MediaAssetEntity.ModerationState.RESTRICTED) return false;
+        if (moderation.isRestricted("MEDIA", a.getId())
+                || moderation.isRestricted("USER", a.getOwnerUserId())) return false;
         return a.getUploadState() == MediaAssetEntity.UploadState.VERIFIED
                 && (a.getProcessingState() == MediaAssetEntity.ProcessingState.COMPLETED
                     || a.getProcessingState() == MediaAssetEntity.ProcessingState.NOT_REQUIRED);

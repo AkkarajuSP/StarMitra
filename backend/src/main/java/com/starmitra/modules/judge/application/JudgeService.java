@@ -161,7 +161,7 @@ public class JudgeService {
      * within that assignment). Judge NEVER sees unassigned scope.
      */
     public record ScopedSubmission(UUID id, UUID participantId, UUID competitionId,
-                                   UUID roundId, String state) {}
+                                   UUID roundId, String state, List<UUID> mediaIds) {}
 
     @Transactional(readOnly = true)
     public List<ScopedSubmission> myScopedSubmissions(UUID userId, UUID competitionId) {
@@ -173,7 +173,7 @@ public class JudgeService {
                 .distinct()
                 .map(id -> submissions.submissionView(id).orElseThrow())
                 .map(d -> new ScopedSubmission(d.id(), d.participantId(), d.competitionId(),
-                        d.roundId(), d.state()))
+                        d.roundId(), d.state(), submissions.mediaIdsOf(d.id())))
                 .toList();
     }
 

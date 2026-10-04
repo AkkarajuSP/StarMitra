@@ -20,6 +20,9 @@ public interface SubmissionTruthContract {
     /** FINALIZED submissions in scope (nulls = wildcard) — M12 judge portal. */
     java.util.List<UUID> finalizedInScope(UUID competitionId, UUID categoryId, UUID roundId);
 
+    /** Attached media references (M04 ids only — never storage keys). M20 judge review. */
+    java.util.List<UUID> mediaIdsOf(UUID submissionId);
+
     record SubmissionDetails(UUID id, UUID participantId, String participantType,
                              UUID competitionId, UUID categoryId, UUID roundId, String state) {}
 }

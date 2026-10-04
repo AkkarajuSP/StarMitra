@@ -180,6 +180,14 @@ public class PortfolioService implements PortfolioTargetContract {
                 .orElse(false);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<UUID> ownerOf(UUID itemId) {
+        return items.findById(itemId)
+                .flatMap(i -> portfolios.findById(i.getPortfolioId()))
+                .map(p -> p.getUserId());
+    }
+
     // ---------- internals ----------
 
     private List<PortfolioItemEntity> items(UUID userId) {

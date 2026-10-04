@@ -14,4 +14,7 @@ public interface MediaReferenceContract {
 
     /** True when the caller may view/engage the asset (owner, or PUBLIC+processed+unrestricted). */
     boolean isDeliverableTo(UUID mediaId, UUID callerUserId);
+
+    /** Asset owner — for recipient derivation (e.g., M21 LIKE notification). */
+    java.util.Optional<UUID> ownerOf(UUID mediaId);
 }
