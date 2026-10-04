@@ -28,6 +28,7 @@ class SecurityBaselineTest {
 
     @Autowired MockMvc mvc;
     @MockBean JudgeScopeService judgeScope;
+    @MockBean com.starmitra.modules.judge.application.JudgeService judgeService;
     @MockBean JwtDecoder jwtDecoder;
 
     @Test

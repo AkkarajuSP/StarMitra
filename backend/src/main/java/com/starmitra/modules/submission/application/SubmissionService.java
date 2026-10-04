@@ -258,6 +258,11 @@ public class SubmissionService implements SubmissionTruthContract {
         });
     }
 
+    @Override @Transactional(readOnly = true)
+    public java.util.List<UUID> finalizedInScope(UUID competitionId, UUID categoryId, UUID roundId) {
+        return submissions.findFinalizedIds(competitionId, categoryId, roundId);
+    }
+
     // ---------- internals ----------
 
     private SubmissionEntity requireSubmission(UUID submissionId) {

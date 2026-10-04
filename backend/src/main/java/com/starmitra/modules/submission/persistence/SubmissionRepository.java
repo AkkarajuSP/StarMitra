@@ -12,6 +12,14 @@ public interface SubmissionRepository extends JpaRepository<SubmissionEntity, UU
     boolean existsByParticipantIdAndRoundIdAndStateNot(
             UUID participantId, UUID roundId, SubmissionEntity.State state);
 
+    @Query("select s.id from SubmissionEntity s where s.competitionId = :compId " +
+           "and s.state = 'FINALIZED' " +
+           "and (:categoryId is null or s.categoryId = :categoryId) " +
+           "and (:roundId is null or s.roundId = :roundId)")
+    List<UUID> findFinalizedIds(@Param("compId") UUID compId,
+                                @Param("categoryId") UUID categoryId,
+                                @Param("roundId") UUID roundId);
+
     @Query("select s from SubmissionEntity s where s.competitionId = :compId " +
            "and (:roundId is null or s.roundId = :roundId) " +
            "and (:categoryId is null or s.categoryId = :categoryId) " +

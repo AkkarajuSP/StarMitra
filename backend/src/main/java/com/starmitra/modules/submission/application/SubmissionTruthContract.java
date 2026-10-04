@@ -17,6 +17,9 @@ public interface SubmissionTruthContract {
     /** Full submission context — M11 derives target/scope from this, never M10 internals. */
     java.util.Optional<SubmissionDetails> submissionView(UUID submissionId);
 
+    /** FINALIZED submissions in scope (nulls = wildcard) — M12 judge portal. */
+    java.util.List<UUID> finalizedInScope(UUID competitionId, UUID categoryId, UUID roundId);
+
     record SubmissionDetails(UUID id, UUID participantId, String participantType,
                              UUID competitionId, UUID categoryId, UUID roundId, String state) {}
 }
