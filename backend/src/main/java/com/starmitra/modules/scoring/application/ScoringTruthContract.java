@@ -17,4 +17,11 @@ public interface ScoringTruthContract {
 
     /** Whether scoring for the round's latest config is sealed. */
     boolean isSealed(UUID roundId);
+
+    /** Leaderboard-ready latest results for a round (M16 input — read-only truth). */
+    java.util.List<LeaderboardResult> latestResults(UUID roundId);
+
+    record LeaderboardResult(UUID submissionId, UUID categoryId, java.math.BigDecimal finalScore,
+                             Integer rank, Boolean qualified, Boolean tied,
+                             Integer rankingSnapshotVersion) {}
 }

@@ -282,6 +282,26 @@ public class ScoringService implements ScoringTruthContract {
         return finalScoresByRound(roundId).stream().anyMatch(f -> f.getStatus().equals("SEALED"));
     }
 
+    @Override @Transactional(readOnly = true)
+    public List<LeaderboardResult> latestResults(UUID roundId) {
+        int snap = rankings.maxSnapshot(roundId);
+        if (snap == 0) return List.of();
+        var qual = qualificationOf(roundId);
+        var scoreBySub = finalScoresByRound(roundId).stream().collect(
+                Collectors.groupingBy(FinalScoreEntity::getSubmissionId,
+                        Collectors.maxBy(Comparator.comparingInt(FinalScoreEntity::getScoreVersion))))
+                .values().stream().map(Optional::get).collect(Collectors.toMap(
+                        FinalScoreEntity::getSubmissionId, f -> f));
+        return rankings.findByRoundIdAndSnapshotVersionOrderByRankAsc(roundId, snap).stream()
+                .map(r -> {
+                    var f = scoreBySub.get(r.getSubmissionId());
+                    return new LeaderboardResult(r.getSubmissionId(),
+                            f == null ? null : f.getCategoryId(),
+                            f == null ? null : f.getFinalScore(),
+                            r.getRank(), qual.get(r.getSubmissionId()), r.isTied(), snap);
+                }).toList();
+    }
+
     // ---------- internals ----------
 
     private List<FinalScoreEntity> finalScoresByRound(UUID roundId) {

@@ -49,4 +49,7 @@ public class RankingEntity {
 
     public UUID getSubmissionId() { return submissionId; }
     public int getRank() { return rank; }
+    public boolean isTied() { return tieBreakApplied != null && tieBreakApplied.contains("\"tied\":true"); }
+    public UUID getCategoryId() { return categoryId; }
+    public UUID getCompetitionId() { return competitionId; }
 }
