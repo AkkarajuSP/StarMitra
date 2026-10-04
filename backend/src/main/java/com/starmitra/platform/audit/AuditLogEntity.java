@@ -67,4 +67,11 @@ public class AuditLogEntity {
     public void setBeforeRef(String json) { this.beforeRef = json; }
     public void setAfterRef(String json) { this.afterRef = json; }
     public UUID getId() { return id; }
+    public String getModule() { return module; }
+    public String getAction() { return action; }
+    public UUID getActorId() { return actorId; }
+    public String getTargetType() { return targetType; }
+    public String getTargetId() { return targetId; }
+    public UUID getCorrelationId() { return correlationId; }
+    public OffsetDateTime getCreatedAt() { return createdAt; }
 }
