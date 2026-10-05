@@ -69,6 +69,7 @@ public class OtpService {
      */
     @Transactional
     public UUID request(String channel, String identifier) {
+        identifier = normalize(identifier);
         UserEntity user = registration.findOrRegister(channel, identifier);
         if (user.getStatus() != UserEntity.Status.ACTIVE) {
             authEvents.record(user.getId(), AuthEventService.OTP_REQUEST_UNKNOWN);
@@ -105,7 +106,7 @@ public class OtpService {
      */
     @Transactional(noRollbackFor = ApiException.class)
     public UUID verify(String identifier, String otp) {
-        UserEntity user = findUserByIdentifier(identifier)
+        UserEntity user = findUserByIdentifier(normalize(identifier))
                 .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID));
 
         OtpChallengeEntity challenge = challenges.findTop1ByUserIdAndConsumedAtIsNullOrderByCreatedAtDesc(user.getId())
@@ -141,6 +142,12 @@ public class OtpService {
     /** Contract has no channel on verify — resolve by email first, then phone. */
     private Optional<UserEntity> findUserByIdentifier(String identifier) {
         return users.findByEmail(identifier).or(() -> users.findByPhone(identifier));
+    }
+
+    /** Emails are case-insensitive; normalize so request/verify/registration agree. */
+    private static String normalize(String identifier) {
+        String v = identifier == null ? null : identifier.trim();
+        return v != null && v.contains("@") ? v.toLowerCase() : v;
     }
 
     private static String generate() {
