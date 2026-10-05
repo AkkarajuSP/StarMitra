@@ -36,7 +36,7 @@ export default function LoginPage({ onLogin }: { onLogin: (s: Session) => void }
   return (
     <div className="login-page">
       <div className="login-hero">
-        <img className="hero-art" src="/brand/sMBanner.png" alt=""
+        <img className="hero-art" src="/brand/bannerSM.png" alt=""
              aria-hidden="true" />
         <div><Logo surface="dark" size="large" /></div>
         <div>
