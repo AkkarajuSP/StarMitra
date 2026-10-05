@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { Session } from '../../api/auth';
+import { Logo } from '../shared/ui';
 
 const NAV: { group: string; items: { to: string; label: string }[] }[] = [
   { group: 'Overview', items: [{ to: '/admin', label: 'Dashboard' }] },
@@ -28,10 +30,16 @@ export default function AdminShell({ session, onLogout }:
   const crumb = NAV.flatMap(g => g.items).find(i =>
     i.to === '/admin' ? pathname === '/admin' || pathname === '/admin/'
       : pathname.startsWith(i.to));
+  useEffect(() => {
+    document.title = `StarMitra | Admin — ${crumb?.label ?? 'Dashboard'}`;
+  }, [crumb]);
   return (
     <div className="admin-shell">
       <aside className="admin-side">
-        <div className="brand">StarMitra Admin</div>
+        <div className="brand">
+          <Logo variant="light" size="small" />
+          <span className="portal">Admin Portal</span>
+        </div>
         <nav aria-label="Admin navigation">
           {NAV.map(g => (
             <div key={g.group}>
@@ -44,10 +52,11 @@ export default function AdminShell({ session, onLogout }:
             </div>
           ))}
         </nav>
+        <div className="side-foot">StarMitra · Passion to Perform</div>
       </aside>
       <div className="admin-main">
         <header className="admin-top">
-          <span className="crumb">Admin / {crumb?.label ?? 'Dashboard'}</span>
+          <span className="crumb">Admin / <b>{crumb?.label ?? 'Dashboard'}</b></span>
           <div className="who">
             <Badge v="ADMIN" />
             <span>{session.email}</span>
@@ -61,5 +70,5 @@ export default function AdminShell({ session, onLogout }:
 }
 
 function Badge({ v }: { v: string }) {
-  return <span className="badge admin">{v}</span>;
+  return <span className={`badge ${v.toLowerCase()}`}>{v}</span>;
 }

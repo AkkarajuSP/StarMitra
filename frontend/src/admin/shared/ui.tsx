@@ -1,5 +1,56 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiProblem } from '../../api/client';
+
+/** Approved StarMitra lockup — light variant for navy surfaces. */
+export function Logo({ variant = 'light', size = 'normal' }:
+  { variant?: 'light' | 'dark' | 'mark'; size?: 'small' | 'normal' | 'large' }) {
+  const src = variant === 'mark' ? '/brand/starmitra-mark.svg'
+    : variant === 'light' ? '/brand/starmitra-logo-light.svg'
+    : '/brand/starmitra-logo.svg';
+  return <span className={`logo ${size}`}><img src={src} alt="StarMitra" /></span>;
+}
+
+/** Branded empty state — mark + copy; used wherever a list has no rows. */
+export function EmptyState({ title = 'Nothing to show', detail }: { title?: string; detail?: string }) {
+  return (
+    <div className="empty-state" role="status">
+      <img src="/brand/starmitra-mark.svg" alt="" aria-hidden="true" />
+      <div className="t">{title}</div>
+      {detail && <div className="d">{detail}</div>}
+    </div>
+  );
+}
+
+/** Segmented OTP input — keyboard + paste friendly. */
+export function OtpInput({ value, onChange, length = 6, autoFocus = false }:
+  { value: string; onChange: (v: string) => void; length?: number; autoFocus?: boolean }) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const chars = value.padEnd(length).slice(0, length).split('');
+  const setChar = (i: number, c: string) => {
+    const next = value.padEnd(length).split('');
+    next[i] = (c.replace(/\D/g, '') || ' ').slice(-1);
+    onChange(next.join('').trimEnd());
+    if (c && i < length - 1) refs.current[i + 1]?.focus();
+  };
+  return (
+    <div className="otp-row" role="group" aria-label="One-time code">
+      {chars.map((c, i) => (
+        <input key={i} ref={(el) => { refs.current[i] = el; }}
+          value={c.trim()} inputMode="numeric" maxLength={1} autoComplete="one-time-code"
+          aria-label={`Digit ${i + 1}`} autoFocus={autoFocus && i === 0}
+          onChange={(e) => setChar(i, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && !c.trim() && i > 0) refs.current[i - 1]?.focus();
+          }}
+          onPaste={i === 0 ? (e) => {
+            e.preventDefault();
+            onChange(e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length));
+          } : undefined}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function useApi<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);
@@ -24,7 +75,7 @@ export function State({ loading, error, empty, children }:
       ? 'Not authorized for this operation.'
       : `Error: ${error.message}`}
   </div>;
-  if (empty) return <div className="state">Nothing to show.</div>;
+  if (empty) return <EmptyState />;
   return <>{children}</>;
 }
 

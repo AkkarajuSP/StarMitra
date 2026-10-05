@@ -11,6 +11,7 @@ export default function JudgeDashboard() {
   return (
     <>
       <h1 className="page-title">Judge Dashboard</h1>
+      <p className="page-sub">Your assignments, scoped submissions, and evaluation work.</p>
       <State loading={loading} error={error}>
         <div className="cards">
           <Link to="/judge/assignments" className="stat" style={{ textDecoration: 'none' }}>
