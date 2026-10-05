@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiProblem } from '../../api/client';
 
-/** Approved StarMitra lockup — light variant for navy surfaces. */
-export function Logo({ variant = 'light', size = 'normal' }:
-  { variant?: 'light' | 'dark' | 'mark'; size?: 'small' | 'normal' | 'large' }) {
-  const src = variant === 'mark' ? '/brand/starmitra-mark.svg'
-    : variant === 'light' ? '/brand/starmitra-logo-light.svg'
-    : '/brand/starmitra-logo.svg';
-  return <span className={`logo ${size}`}><img src={src} alt="StarMitra" /></span>;
+/** Official StarMitra lockup (SMLogo.png) / circular mark (mobileAppLogo.png).
+ *  On navy surfaces the lockup sits on a white tile so the artwork is never
+ *  recoloured. */
+export function Logo({ variant = 'dark', size = 'normal' }:
+  { variant?: 'dark' | 'mark'; size?: 'small' | 'normal' | 'large' }) {
+  const src = variant === 'mark'
+    ? '/brand/StarMitra-Mark.png'
+    : '/brand/StarMitra-Primary-Logo.png';
+  return <span className={`logo ${size} ${variant}`}>
+    <img src={src} alt="StarMitra" /></span>;
 }
 
 /** Branded empty state — mark + copy; used wherever a list has no rows. */
 export function EmptyState({ title = 'Nothing to show', detail }: { title?: string; detail?: string }) {
   return (
     <div className="empty-state" role="status">
-      <img src="/brand/starmitra-mark.svg" alt="" aria-hidden="true" />
+      <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
       <div className="t">{title}</div>
       {detail && <div className="d">{detail}</div>}
     </div>

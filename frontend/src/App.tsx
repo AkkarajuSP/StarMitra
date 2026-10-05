@@ -78,12 +78,12 @@ function NoPortal() {
     <div className="login-page">
       <div className="login-hero" style={{ flex: 'unset', width: 320 }}>
         <img className="hero-art" src="/brand/hero.svg" alt="" aria-hidden="true" />
-        <div><span className="logo small"><img src="/brand/starmitra-logo-light.svg" alt="StarMitra" /></span></div>
+        <div><span className="logo small"><img src="/brand/StarMitra-Mark.png" alt="StarMitra" /></span></div>
       </div>
       <div className="login-panel-wrap">
         <div className="login-panel">
           <div className="empty-state">
-            <img src="/brand/starmitra-mark.svg" alt="" aria-hidden="true" />
+            <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
             <div className="t">No portal access</div>
             <div className="d">
               This account doesn't include Admin or Judge access. The

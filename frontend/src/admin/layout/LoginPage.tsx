@@ -38,14 +38,18 @@ export default function LoginPage({ onLogin }: { onLogin: (s: Session) => void }
       <div className="login-hero">
         <img className="hero-art" src="/brand/hero.svg" alt=""
              aria-hidden="true" />
-        <div><Logo variant="light" size="large" /></div>
+        <div><Logo variant="mark" size="large" /></div>
         <div>
           <h1>Welcome to StarMitra</h1>
           <div className="tagline">Passion to Perform</div>
           <p className="hero-note">
-            Talent discovery, competitions and community — one stage for
-            every skill.
+            Discover. Create. Perform. Connect.
           </p>
+          <ul className="hero-points">
+            <li>Show your talent</li>
+            <li>Join competitions</li>
+            <li>Collaborate and create</li>
+          </ul>
         </div>
       </div>
       <div className="login-panel-wrap">

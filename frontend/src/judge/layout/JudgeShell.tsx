@@ -23,8 +23,9 @@ export default function JudgeShell({ session, onLogout }:
     <div className="admin-shell">
       <aside className="admin-side">
         <div className="brand">
-          <Logo variant="light" size="small" />
-          <span className="portal">Judge Portal</span>
+          <Logo variant="mark" size="small" />
+          <span className="brand-text">Star<b>Mitra</b>
+            <span className="portal">Judge Portal</span></span>
         </div>
         <nav aria-label="Judge navigation">
           {NAV.map(i => (

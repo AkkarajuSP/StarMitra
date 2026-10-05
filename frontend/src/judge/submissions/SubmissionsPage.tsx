@@ -8,33 +8,30 @@ export default function SubmissionsPage() {
   return (
     <>
       <h1 className="page-title">My Submissions</h1>
-      <p className="derived">Only submissions covered by your active assignments are shown.</p>
-      <div className="panel">
-        <State loading={loading} error={error} empty={!data?.length}>
-          <div className="table-wrap">
-            <table className="list">
-              <thead><tr>
-                <th>Submission</th><th>Competition</th><th>Round</th><th>State</th><th />
-              </tr></thead>
-              <tbody>
-                {data?.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.id.slice(0, 8)}…</td>
-                    <td>{s.competitionId.slice(0, 8)}…</td>
-                    <td>{s.roundId ? `${s.roundId.slice(0, 8)}…` : '—'}</td>
-                    <td><Badge v={s.state} /></td>
-                    <td>
-                      <Link to={`/judge/evaluate/${s.id}?round=${s.roundId}`} className="btn">
-                        Evaluate
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </State>
-      </div>
+      <p className="page-sub">Only submissions covered by your active assignments are shown.</p>
+      <State loading={loading} error={error} empty={!data?.length}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {data?.map((s) => (
+            <div className="sub-card" key={s.id}>
+              <div className="thumb">
+                <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
+              </div>
+              <div className="meta">
+                <div className="name">Submission {s.id.slice(0, 8)}…</div>
+                <div className="sub">
+                  Competition {s.competitionId.slice(0, 8)}… · Round{' '}
+                  {s.roundId ? `${s.roundId.slice(0, 8)}…` : '—'}
+                </div>
+              </div>
+              <Badge v={s.state} />
+              <Link to={`/judge/evaluate/${s.id}?round=${s.roundId}`}
+                    className="btn primary">
+                Evaluate
+              </Link>
+            </div>
+          ))}
+        </div>
+      </State>
     </>
   );
 }

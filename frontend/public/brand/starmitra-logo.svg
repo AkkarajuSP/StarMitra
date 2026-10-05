@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" role="img" aria-label="StarMitra — Passion to Perform">
-  <g>
-    <rect x="0" y="4" width="48" height="48" rx="12" fill="#022179"/>
-    <path d="M24 12l3.6 8.7 9.5.9-7.3 6.3 2.2 9.3-8-4.7-8 4.7 2.2-9.3-7.3-6.3 9.5-.9z" fill="#F5B942"/>
-    <circle cx="35.5" cy="16.5" r="2.25" fill="#7C3AED"/>
-  </g>
-  <text x="60" y="38" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="30" font-weight="700" fill="#022179">Star<tspan fill="#7C3AED">Mitra</tspan></text>
-</svg>
