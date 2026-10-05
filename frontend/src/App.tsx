@@ -77,7 +77,7 @@ function NoPortal() {
   return (
     <div className="login-page">
       <div className="login-hero" style={{ flex: 'unset', width: 320 }}>
-        <img className="hero-art" src="/brand/hero.svg" alt="" aria-hidden="true" />
+        <img className="hero-art" src="/brand/sMBanner.png" alt="" aria-hidden="true" />
         <div><span className="logo small"><img src="/brand/mobileAppIconLight.png" alt="StarMitra" /></span></div>
       </div>
       <div className="login-panel-wrap">
