@@ -31,9 +31,9 @@ img { max-width: 100%; }
 
 /* ---------- brand marks ---------- */
 .logo { display: inline-flex; align-items: center; }
-.logo img { height: 34px; width: auto; display: block; }
-.logo.small img { height: 28px; }
-.logo.large img { height: 72px; }
+.logo img { height: 68px; width: auto; display: block; }
+.logo.small img { height: 30px; }
+.logo.large img { height: 170px; max-width: min(340px, 42vw); object-fit: contain; }
 
 .brand-text { color: #fff; font-weight: 600; font-size: 16px; line-height: 1.2;
   display: flex; flex-direction: column; }
@@ -237,8 +237,13 @@ textarea:focus-visible, button:focus-visible {
 .score-input:focus { border-color: var(--purple); }
 
 /* ---------- responsive ---------- */
+@media (max-width: 1200px) {
+  .logo.large img { height: 130px; }
+}
 @media (max-width: 900px) {
   .login-hero { display: none; }
+  .logo img { height: 54px; }
+  .logo.small img { height: 26px; }
   .login-panel-wrap { background: linear-gradient(160deg, var(--navy) 0%, var(--violet) 100%); }
   .login-panel { background: var(--surface); border-radius: 16px;
     padding: 28px 24px; box-shadow: var(--shadow-lg); }
