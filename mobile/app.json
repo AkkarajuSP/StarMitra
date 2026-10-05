@@ -4,12 +4,12 @@
     "slug": "starmitra",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/StarMitra-Mark.png",
+    "icon": "./assets/brand/mobileAppIconDark.png",
     "scheme": "starmitra",
     "userInterfaceStyle": "light",
     "backgroundColor": "#022179",
     "splash": {
-      "image": "./assets/brand/StarMitra-Mark.png",
+      "image": "./assets/brand/mobileAppIconLight.png",
       "resizeMode": "contain",
       "backgroundColor": "#022179"
     },
@@ -21,7 +21,7 @@
       "package": "dev.starmitra.app",
       "adaptiveIcon": {
         "backgroundColor": "#022179",
-        "foregroundImage": "./assets/brand/StarMitra-Mark.png"
+        "foregroundImage": "./assets/brand/mobileAppIconLight.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -29,10 +29,7 @@
       "favicon": "./assets/brand/favicon.png"
     },
     "extra": {
-      "apiBase": "http://192.168.1.10:9090"
-    },
-    "plugins": [
-      "expo-router"
-    ]
+      "apiBase": "http://192.168.29.3:9090"
+    }
   }
 }

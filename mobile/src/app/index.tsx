@@ -9,8 +9,8 @@ export default function Index() {
   if (!booted) {
     return (
       <View style={styles.splash}>
-        <Image source={require('../../assets/brand/StarMitra-Mark.png')}
-          style={styles.mark} />
+        <Image source={require('../../assets/brand/mobileAppIconLight.png')}
+          style={styles.mark} resizeMode="contain" />
         <Text style={styles.name}>StarMitra</Text>
         <Text style={styles.tagline}>{TAGLINE}</Text>
         <ActivityIndicator color={C.gold} style={{ marginTop: 24 }} />
@@ -23,7 +23,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   splash: { flex: 1, backgroundColor: C.navy, alignItems: 'center',
     justifyContent: 'center' },
-  mark: { width: 120, height: 120, borderRadius: 60 },
+  mark: { width: 130, height: 130 },
   name: { color: '#fff', fontSize: 30, fontWeight: '800', marginTop: 18 },
   tagline: { color: C.gold, fontSize: 14, letterSpacing: 1.5, marginTop: 6 },
 });

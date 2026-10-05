@@ -45,7 +45,7 @@ export default function CompetitionDetail() {
       contentContainerStyle={{ padding: 16, gap: 14 }}>
       {err != null && <ErrorBox error={err} />}
       <Card style={styles.banner}>
-        <Mark size={54} />
+        <Mark size={54} surface="dark" />
         <Text style={styles.title}>{comp.title}</Text>
         <View style={styles.badgeRow}>
           <Badge v={comp.configStatus} />

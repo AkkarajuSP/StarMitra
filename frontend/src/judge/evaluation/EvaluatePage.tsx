@@ -43,7 +43,7 @@ export default function EvaluatePage() {
   if (done) return (
     <div className="panel eval-done" role="status">
       <div className="empty-state">
-        <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
+        <img src="/brand/mobileAppIconDark.png" alt="" aria-hidden="true" />
         <div className="t">Evaluation submitted</div>
         <div className="d">Recorded against rubric v{rubric?.versionNo} —
           locked per the evaluation lifecycle.</div>
@@ -72,7 +72,7 @@ export default function EvaluatePage() {
           {/* LEFT — preview + submission details */}
           <div>
             <div className="panel media-preview">
-              <img src="/brand/StarMitra-Mark.png" alt="Submission media placeholder"
+              <img src="/brand/mobileAppIconLight.png" alt="Submission media placeholder"
                    className="preview-art" />
               <p className="derived" style={{ margin: 0 }}>
                 Media preview — attachment delivery is wired through M04;

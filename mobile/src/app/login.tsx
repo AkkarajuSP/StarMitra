@@ -53,7 +53,7 @@ export default function Login() {
       <ScrollView style={styles.page} contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
-          <Lockup width={190} />
+          <Lockup width={190} surface="dark" />
           <Text style={styles.sub}>Discover. Create. Perform. Connect.</Text>
         </View>
         <View style={styles.card}>

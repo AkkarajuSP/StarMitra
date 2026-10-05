@@ -37,7 +37,7 @@ export default function AdminShell({ session, onLogout }:
     <div className="admin-shell">
       <aside className="admin-side">
         <div className="brand">
-          <Logo variant="mark" size="small" />
+          <Logo surface="dark" mark size="small" />
           <span className="brand-text">Star<b>Mitra</b>
             <span className="portal">Admin Portal</span></span>
         </div>

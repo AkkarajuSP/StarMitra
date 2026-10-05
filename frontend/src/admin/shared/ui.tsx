@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiProblem } from '../../api/client';
 
-/** Official StarMitra lockup (SMLogo.png) / circular mark (mobileAppLogo.png).
- *  On navy surfaces the lockup sits on a white tile so the artwork is never
- *  recoloured. */
-export function Logo({ variant = 'dark', size = 'normal' }:
-  { variant?: 'dark' | 'mark'; size?: 'small' | 'normal' | 'large' }) {
-  const src = variant === 'mark'
-    ? '/brand/StarMitra-Mark.png'
-    : '/brand/StarMitra-Primary-Logo.png';
-  return <span className={`logo ${size} ${variant}`}>
+/** Official StarMitra brand lockup/mark — variant = the SURFACE it sits on.
+ *  surface 'light' → sMLogoMainDark.png / mobileAppIconDark.png
+ *  surface 'dark'  → sMLogoMainLight.png / mobileAppIconLight.png */
+export function Logo({ surface = 'light', mark = false, size = 'normal' }:
+  { surface?: 'light' | 'dark'; mark?: boolean;
+    size?: 'small' | 'normal' | 'large' }) {
+  const src = mark
+    ? (surface === 'dark' ? '/brand/mobileAppIconLight.png'
+                          : '/brand/mobileAppIconDark.png')
+    : (surface === 'dark' ? '/brand/sMLogoMainLight.png'
+                          : '/brand/sMLogoMainDark.png');
+  return <span className={`logo ${size}`}>
     <img src={src} alt="StarMitra" /></span>;
 }
 
@@ -17,7 +20,7 @@ export function Logo({ variant = 'dark', size = 'normal' }:
 export function EmptyState({ title = 'Nothing to show', detail }: { title?: string; detail?: string }) {
   return (
     <div className="empty-state" role="status">
-      <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
+      <img src="/brand/mobileAppIconDark.png" alt="" aria-hidden="true" />
       <div className="t">{title}</div>
       {detail && <div className="d">{detail}</div>}
     </div>

@@ -6,17 +6,25 @@ import {
 import { C } from '../lib/theme';
 import { ApiError } from '../lib/api';
 
-/* ---------- logo ---------- */
-export function Mark({ size = 40 }: { size?: number }) {
+/* ---------- logo (official assets; surface picks the correct variant) ---------- */
+export function Mark({ size = 40, surface = 'light' }:
+  { size?: number; surface?: 'light' | 'dark' }) {
   return (
-    <Image source={require('../../assets/brand/StarMitra-Mark.png')}
-      style={{ width: size, height: size, borderRadius: size / 2 }}
+    <Image
+      source={surface === 'dark'
+        ? require('../../assets/brand/mobileAppIconLight.png')
+        : require('../../assets/brand/mobileAppIconDark.png')}
+      style={{ width: size, height: size }} resizeMode="contain"
       accessibilityLabel="StarMitra logo" />
   );
 }
-export function Lockup({ width = 180 }: { width?: number }) {
+export function Lockup({ width = 180, surface = 'light' }:
+  { width?: number; surface?: 'light' | 'dark' }) {
   return (
-    <Image source={require('../../assets/brand/StarMitra-Primary-Logo.png')}
+    <Image
+      source={surface === 'dark'
+        ? require('../../assets/brand/sMLogoMainLight.png')
+        : require('../../assets/brand/sMLogoMainDark.png')}
       style={{ width, height: width * 0.78 }} resizeMode="contain"
       accessibilityLabel="StarMitra — Passion to Perform" />
   );

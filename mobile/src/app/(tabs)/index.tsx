@@ -21,7 +21,7 @@ export default function Home() {
       ListHeaderComponent={
         <View style={{ gap: 14 }}>
           <View style={styles.welcome}>
-            <Mark size={40} />
+            <Mark size={40} surface="dark" />
             <View style={{ flex: 1 }}>
               <Text style={styles.hi}>Welcome back</Text>
               <Text style={styles.mail} numberOfLines={1}>{session?.email}</Text>

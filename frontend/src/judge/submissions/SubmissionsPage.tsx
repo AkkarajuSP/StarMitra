@@ -14,7 +14,7 @@ export default function SubmissionsPage() {
           {data?.map((s) => (
             <div className="sub-card" key={s.id}>
               <div className="thumb">
-                <img src="/brand/StarMitra-Mark.png" alt="" aria-hidden="true" />
+                <img src="/brand/mobileAppIconLight.png" alt="" aria-hidden="true" />
               </div>
               <div className="meta">
                 <div className="name">Submission {s.id.slice(0, 8)}…</div>

@@ -38,7 +38,7 @@ export default function LoginPage({ onLogin }: { onLogin: (s: Session) => void }
       <div className="login-hero">
         <img className="hero-art" src="/brand/hero.svg" alt=""
              aria-hidden="true" />
-        <div><Logo variant="mark" size="large" /></div>
+        <div><Logo surface="dark" size="large" /></div>
         <div>
           <h1>Welcome to StarMitra</h1>
           <div className="tagline">Passion to Perform</div>
@@ -54,7 +54,7 @@ export default function LoginPage({ onLogin }: { onLogin: (s: Session) => void }
       </div>
       <div className="login-panel-wrap">
         <div className="login-panel">
-          <Logo variant="dark" size="normal" />
+          <Logo surface="light" size="normal" />
           <h2>Sign in</h2>
           <p className="sub">
             Enter your email — we'll send a one-time code.
