@@ -2,6 +2,7 @@ package com.starmitra.modules.admin.application;
 
 import com.starmitra.modules.moderation.application.ModerationContract;
 import com.starmitra.modules.moderation.application.ModerationService;
+import com.starmitra.modules.pricing.application.PricingService;
 import com.starmitra.platform.audit.AuditQueryService;
 import com.starmitra.platform.security.SystemRoleGuard;
 import org.springframework.stereotype.Service;
@@ -22,10 +23,13 @@ public class AdminService {
 
     private final AuditQueryService auditQuery;
     private final ModerationService moderation;
+    private final PricingService pricing;
 
-    public AdminService(AuditQueryService auditQuery, ModerationService moderation) {
+    public AdminService(AuditQueryService auditQuery, ModerationService moderation,
+                        PricingService pricing) {
         this.auditQuery = auditQuery;
         this.moderation = moderation;
+        this.pricing = pricing;
     }
 
     /** Derived dashboard — counts/views from owning-module contracts only. */
@@ -45,5 +49,29 @@ public class AdminService {
     public List<AuditQueryService.AuditView> audit(String module, UUID actorId, int limit) {
         SystemRoleGuard.requireAdmin();
         return auditQuery.search(module, actorId, limit);
+    }
+
+    // ---------- M22 plan administration (delegates — M22 stays authoritative) ----------
+
+    /** All plans incl. INACTIVE + their configured entitlement values. */
+    @Transactional(readOnly = true)
+    public List<PricingService.PlanView> plans() {
+        SystemRoleGuard.requireAdmin();
+        return pricing.adminCatalog();
+    }
+
+    /** Update pricing/display/status of a plan — M22-owned truth. */
+    @Transactional
+    public PricingService.PlanView updatePlan(String planCode, PricingService.PlanUpdate cmd) {
+        SystemRoleGuard.requireAdmin();
+        return pricing.adminUpdatePlan(planCode, cmd);
+    }
+
+    /** Set one entitlement value on a plan — M22-owned truth. */
+    @Transactional
+    public PricingService.PlanView setPlanEntitlement(String planCode, String entitlementCode,
+                                                      String value) {
+        SystemRoleGuard.requireAdmin();
+        return pricing.adminSetEntitlement(planCode, entitlementCode, value);
     }
 }

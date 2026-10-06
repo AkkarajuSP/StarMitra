@@ -1,6 +1,7 @@
 package com.starmitra.modules.identity.application;
 
 import com.starmitra.modules.identity.persistence.*;
+import com.starmitra.modules.pricing.application.UserPlanContract;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ class RegistrationServiceTest {
     private UserRepository users;
     private SystemRoleRepository roles;
     private UserSystemRoleRepository userRoles;
+    private UserPlanContract userPlans;
     private RegistrationService service;
 
     @BeforeEach
@@ -22,7 +24,9 @@ class RegistrationServiceTest {
         users = mock(UserRepository.class);
         roles = mock(SystemRoleRepository.class);
         userRoles = mock(UserSystemRoleRepository.class);
-        service = new RegistrationService(users, roles, userRoles, mock(AuthEventService.class));
+        userPlans = mock(UserPlanContract.class);
+        service = new RegistrationService(users, roles, userRoles, mock(AuthEventService.class),
+                userPlans);
     }
 
     @Test
@@ -39,6 +43,7 @@ class RegistrationServiceTest {
         verify(roles).findByName("USER");                      // never JUDGE/ADMIN
         verify(roles, never()).findByName("ADMIN");
         verify(roles, never()).findByName("JUDGE");
+        verify(userPlans).assignDefaultPlan(any());      // M22 default FREE seam
     }
 
     @Test

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
 import { setToken } from './api/client';
 import { isAdmin, isJudge, type Session } from './api/auth';
 import AdminShell from './admin/layout/AdminShell';
@@ -22,6 +22,7 @@ import AssignmentsPage from './judge/assignments/AssignmentsPage';
 import SubmissionsPage from './judge/submissions/SubmissionsPage';
 import EvaluatePage from './judge/evaluation/EvaluatePage';
 import JudgeNotificationsPage from './judge/notifications/NotificationsPage';
+import PricingPage from './pricing/PricingPage';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,6 +62,7 @@ export default function App() {
           </Route>
         )}
         <Route path="/login" element={<LoginPage onLogin={doLogin} />} />
+        <Route path="/pricing" element={<PricingPage session={session} />} />
         <Route path="*" element={
           !session ? <Navigate to="/login" replace />
             : admin ? <Navigate to="/admin" replace />
@@ -89,6 +91,9 @@ function NoPortal() {
               This account doesn't include Admin or Judge access. The
               community experience is API-first in this release.
             </div>
+            <Link className="btn" to="/pricing" style={{ marginTop: 14 }}>
+              View plans &amp; pricing
+            </Link>
           </div>
         </div>
       </div>

@@ -1,10 +1,15 @@
 package com.starmitra.modules.admin.api;
 
 import com.starmitra.modules.admin.application.AdminService;
+import com.starmitra.modules.pricing.application.PricingService;
 import com.starmitra.platform.pagination.Cursor;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -43,5 +48,45 @@ public class AdminController {
                         "createdAt", a.createdAt()))
                 .toList();
         return ResponseEntity.ok(new AuditPage(items, null));
+    }
+
+    // ---------- M22 plan administration (M19 orchestrates; M22 authoritative) ----------
+
+    public record AdminPlan(UUID id, String code, String displayName, String description,
+                            String planType, BigDecimal price, String currency,
+                            String billingPeriod, String status, int sortOrder,
+                            Map<String, String> entitlements) {}
+
+    public record PlanUpdate(String displayName, String description, BigDecimal price,
+                             String status, Integer sortOrder,
+                             OffsetDateTime effectiveFrom, OffsetDateTime effectiveTo) {}
+
+    public record EntitlementSet(@NotBlank String value) {}
+
+    @GetMapping("/api/v1/admin/plans")
+    public ResponseEntity<List<AdminPlan>> adminPlans() {
+        return ResponseEntity.ok(admin.plans().stream().map(this::toAdminPlan).toList());
+    }
+
+    @PutMapping("/api/v1/admin/plans/{planCode}")
+    public ResponseEntity<AdminPlan> updatePlan(@PathVariable String planCode,
+                                                @RequestBody PlanUpdate body) {
+        return ResponseEntity.ok(toAdminPlan(admin.updatePlan(planCode,
+                new PricingService.PlanUpdate(body.displayName(), body.description(), body.price(),
+                        body.status(), body.sortOrder(), body.effectiveFrom(), body.effectiveTo()))));
+    }
+
+    @PutMapping("/api/v1/admin/plans/{planCode}/entitlements/{entitlementCode}")
+    public ResponseEntity<AdminPlan> setPlanEntitlement(@PathVariable String planCode,
+                                                      @PathVariable String entitlementCode,
+                                                      @Valid @RequestBody EntitlementSet body) {
+        return ResponseEntity.ok(toAdminPlan(
+                admin.setPlanEntitlement(planCode, entitlementCode, body.value())));
+    }
+
+    private AdminPlan toAdminPlan(PricingService.PlanView p) {
+        return new AdminPlan(p.id(), p.code(), p.displayName(), p.description(), p.planType(),
+                p.price(), p.currency(), p.billingPeriod(), p.status(), p.sortOrder(),
+                p.entitlements());
     }
 }

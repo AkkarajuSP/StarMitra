@@ -1,6 +1,7 @@
 package com.starmitra.modules.identity.application;
 
 import com.starmitra.modules.identity.persistence.*;
+import com.starmitra.modules.pricing.application.UserPlanContract;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,9 @@ import java.util.UUID;
  *
  * Default capability: USER system role only. ADMIN / SUPER_ADMIN / JUDGE can
  * never be self-granted through any M01 path.
+ *
+ * Seam: every new identity is handed to M22 via UserPlanContract so the
+ * default FREE plan is assigned at registration (no payment involved).
  */
 @Service
 public class RegistrationService {
@@ -23,13 +27,16 @@ public class RegistrationService {
     private final SystemRoleRepository roles;
     private final UserSystemRoleRepository userRoles;
     private final AuthEventService authEvents;
+    private final UserPlanContract userPlans;
 
     public RegistrationService(UserRepository users, SystemRoleRepository roles,
-                               UserSystemRoleRepository userRoles, AuthEventService authEvents) {
+                               UserSystemRoleRepository userRoles, AuthEventService authEvents,
+                               UserPlanContract userPlans) {
         this.users = users;
         this.roles = roles;
         this.userRoles = userRoles;
         this.authEvents = authEvents;
+        this.userPlans = userPlans;
     }
 
     /** Find-or-create by identifier; assigns USER role when creating. */
@@ -52,6 +59,7 @@ public class RegistrationService {
         final UUID newUserId = user.getId();
         roles.findByName(SystemRoleEntity.USER).ifPresent(role ->
                 userRoles.save(new UserSystemRoleEntity(newUserId, role.getId())));
+        userPlans.assignDefaultPlan(newUserId);          // M22 — FREE, idempotent
         authEvents.record(newUserId, AuthEventService.USER_REGISTERED);
         return user;
     }

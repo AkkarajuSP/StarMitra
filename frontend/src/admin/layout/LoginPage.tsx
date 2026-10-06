@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { login, requestOtp } from '../../api/auth';
 import type { Session } from '../../api/auth';
 import { Logo, OtpInput } from '../shared/ui';
@@ -92,6 +93,9 @@ export default function LoginPage({ onLogin }: { onLogin: (s: Session) => void }
           <p className="form-note">
             UAT: your code appears in the backend console — look for the
             UAT OTP banner.
+          </p>
+          <p className="form-note">
+            <Link to="/pricing">View plans &amp; pricing</Link> — start free.
           </p>
         </div>
       </div>

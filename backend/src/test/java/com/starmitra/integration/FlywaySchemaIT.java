@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Flyway authority check — runs the real migration chain against the test
- * database and verifies the physical-schema invariants (90 tables, deferred
+ * database and verifies the physical-schema invariants (95 tables, deferred
  * absent). Requires a reachable PostgreSQL (testcontainers in CI or local).
  */
 @SpringBootTest
@@ -25,11 +25,11 @@ class FlywaySchemaIT {
     @Autowired JdbcTemplate jdbc;
 
     @Test
-    void migrationsProduceNinetyTableSchema() {
+    void migrationsProduceNinetyFiveTableSchema() {
         Integer tables = jdbc.queryForObject(
                 "select count(*) from pg_tables where schemaname='public' and tablename <> 'flyway_schema_history'",
                 Integer.class);
-        assertEquals(90, tables);
+        assertEquals(95, tables);
     }
 
     @Test
@@ -45,7 +45,7 @@ class FlywaySchemaIT {
     void constraintCountsMatchPhysicalDesign() {
         // exclude flyway_schema_history bookkeeping table
         String excl = " and conrelid <> 'flyway_schema_history'::regclass";
-        assertEquals(90, jdbc.queryForObject(
+        assertEquals(95, jdbc.queryForObject(
                 "select count(*) from pg_constraint where contype='p' and connamespace='public'::regnamespace" + excl,
                 Integer.class));
         assertTrue(jdbc.queryForObject(

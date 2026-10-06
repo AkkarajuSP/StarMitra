@@ -34,6 +34,7 @@ tags:
   - {name: Admin, description: M19 Admin Portal (orchestration only)}
   - {name: JudgePortal, description: M20 Judge Portal (orchestration only)}
   - {name: Social, description: M21 Social Engagement}
+  - {name: Pricing, description: M22 Pricing & Entitlements (no payment rails in MVP)}
 
 paths:
   # ---------------- M01 Auth ----------------
@@ -872,6 +873,28 @@ paths:
       summary: Platform AuditLog search view (kernel read-contract)
       parameters: [{name: module, in: query, schema: {type: string}}, {name: actorId, in: query, schema: {type: string, format: uuid}}, {name: correlationId, in: query, schema: {type: string, format: uuid}}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
       responses: {'200': {description: Audit entries, content: {application/json: {schema: {type: object}}}}, default: {$ref: '#/components/responses/Problem'}}
+  /admin/plans:
+    get:
+      tags: [Admin]
+      operationId: adminListPlans
+      summary: All plans incl. INACTIVE + configured entitlement values (M22-owned truth)
+      responses: {'200': {description: Plans, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Plan'}}}}}, default: {$ref: '#/components/responses/Problem'}}
+  /admin/plans/{planCode}:
+    put:
+      tags: [Admin]
+      operationId: adminUpdatePlan
+      summary: Update plan display/pricing/status (admin; M22 stays authoritative)
+      parameters: [{name: planCode, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanUpdate'}}}}
+      responses: {'200': {description: Updated plan, content: {application/json: {schema: {$ref: '#/components/schemas/Plan'}}}}, default: {$ref: '#/components/responses/Problem'}}
+  /admin/plans/{planCode}/entitlements/{entitlementCode}:
+    put:
+      tags: [Admin]
+      operationId: adminSetPlanEntitlement
+      summary: Set one entitlement value on a plan (admin; interpreted per entitlement value_kind)
+      parameters: [{name: planCode, in: path, required: true, schema: {type: string}}, {name: entitlementCode, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/EntitlementSet'}}}}
+      responses: {'200': {description: Updated plan, content: {application/json: {schema: {$ref: '#/components/schemas/Plan'}}}}, default: {$ref: '#/components/responses/Problem'}}
 
   # ---------------- M21 Social ----------------
   /social/follows/{userId}:
@@ -932,6 +955,27 @@ paths:
       summary: Derived counts (never authoritative for business outcomes)
       parameters: [{name: targetType, in: query, required: true, schema: {type: string, enum: [MEDIA, PORTFOLIO]}}, {name: targetId, in: query, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Counts, content: {application/json: {schema: {$ref: '#/components/schemas/EngagementCounts'}}}}, default: {$ref: '#/components/responses/Problem'}}
+
+  # ---------------- M22 Pricing & Entitlements ----------------
+  /public/plans:
+    get:
+      tags: [Pricing]
+      operationId: listPlans
+      summary: Public plan catalog — ACTIVE plans within their effective window
+      security: []
+      responses: {'200': {description: Plans, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/Plan'}}}}}, default: {$ref: '#/components/responses/Problem'}}
+  /me/plan:
+    get:
+      tags: [Pricing]
+      operationId: myPlan
+      summary: Caller's current plan + resolved entitlements (FREE by default)
+      responses: {'200': {description: Current plan, content: {application/json: {schema: {$ref: '#/components/schemas/MyPlan'}}}}, default: {$ref: '#/components/responses/Problem'}}
+    post:
+      tags: [Pricing]
+      operationId: selectPlan
+      summary: Select a plan — FREE activates now; priced plans fail closed (402 PAYMENT_NOT_ENABLED)
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/PlanSelect'}}}}
+      responses: {'200': {description: Plan active, content: {application/json: {schema: {$ref: '#/components/schemas/MyPlan'}}}}, '402': {description: Payment integration not enabled}, default: {$ref: '#/components/responses/Problem'}}
 
 components:
   securitySchemes:
@@ -1095,3 +1139,11 @@ components:
     Comment:           {type: object, properties: {id: {type: string, format: uuid}, authorId: {type: string, format: uuid}, body: {type: string}, createdAt: {type: string, format: date-time}}}
     CommentPage:       {type: object, properties: {items: {type: array, items: {$ref: '#/components/schemas/Comment'}}, page: {$ref: '#/components/schemas/PageMeta'}}}
     EngagementCounts:  {type: object, properties: {followCount: {type: integer, format: int64}, likeCount: {type: integer, format: int64}, commentCount: {type: integer, format: int64}, derived: {type: boolean, default: true}}}
+
+    # ---- pricing/entitlements (M22) ----
+    Plan:           {type: object, properties: {id: {type: string, format: uuid}, code: {type: string}, displayName: {type: string}, description: {type: string}, planType: {type: string, enum: [SUBSCRIPTION, EVENT_PACKAGE]}, price: {type: number}, currency: {type: string}, billingPeriod: {type: string, enum: [NONE, MONTH, EVENT]}, status: {type: string}, sortOrder: {type: integer}, entitlements: {type: object, additionalProperties: {type: string}}}}
+    PlanSelect:     {type: object, properties: {planCode: {type: string}}, required: [planCode]}
+    PlanUpdate:     {type: object, properties: {displayName: {type: string}, description: {type: string}, price: {type: number, minimum: 0}, status: {type: string, enum: [ACTIVE, INACTIVE]}, sortOrder: {type: integer}, effectiveFrom: {type: string, format: date-time}, effectiveTo: {type: string, format: date-time}}}
+    EntitlementSet: {type: object, properties: {value: {type: string}}, required: [value]}
+    Entitlement:    {type: object, properties: {code: {type: string}, kind: {type: string, enum: [BOOLEAN, INTEGER, ENUM]}, value: {type: string}, limit: {type: integer, format: int64}, remaining: {type: integer, format: int64}}}
+    MyPlan:         {type: object, properties: {planCode: {type: string}, displayName: {type: string}, subscriptionStatus: {type: string}, source: {type: string}, startsAt: {type: string, format: date-time}, endsAt: {type: string, format: date-time}, entitlements: {type: array, items: {$ref: '#/components/schemas/Entitlement'}}}}

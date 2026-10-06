@@ -47,6 +47,9 @@ public enum ErrorCode {
     EVALUATION_DUPLICATE(HttpStatus.CONFLICT, "Evaluation already submitted for this scope"),
     RUBRIC_NOT_PUBLISHED(HttpStatus.CONFLICT, "Rubric version is not published"),
 
+    // pricing/entitlements (M22)
+    PAYMENT_NOT_ENABLED(HttpStatus.PAYMENT_REQUIRED, "Payment integration is not enabled"),
+
     // messaging/social/moderation
     NOT_A_MEMBER(HttpStatus.FORBIDDEN, "Not a conversation member"),
     BLOCKED(HttpStatus.FORBIDDEN, "User block is active"),

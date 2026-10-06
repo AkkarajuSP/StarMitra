@@ -23,7 +23,8 @@ class ModuleBoundaryTest {
     private static final String[] DOMAIN_MODULES = {
             "identity", "profile", "skill", "media", "discovery", "connect", "room",
             "portfolio", "competition", "submission", "voting", "judge", "rubric",
-            "scoring", "progression", "leaderboard", "notification", "moderation", "social"};
+            "scoring", "progression", "leaderboard", "notification", "moderation", "social",
+            "pricing"};
 
     @Test
     void apiLayerNeverTouchesPersistence() {

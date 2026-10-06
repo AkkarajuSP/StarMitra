@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Contract-drift guard — validates the canonical spec packaged into
- * /static/openapi.yaml: parses, counts 133 operations, unique operationIds,
+ * /static/openapi.yaml: parses, counts 139 operations, unique operationIds,
  * every operation has responses + tags.
  */
 class OpenApiContractTest {
@@ -43,7 +43,7 @@ class OpenApiContractTest {
                         "duplicate operationId " + op.get("operationId"));
             }
         }
-        assertEquals(133, ops, "canonical contract operation count drifted");
-        assertEquals(133, operationIds.size());
+        assertEquals(139, ops, "canonical contract operation count drifted");
+        assertEquals(139, operationIds.size());
     }
 }
